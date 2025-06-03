@@ -1,0 +1,201 @@
+{
+    "connection": "payments-kafka",
+    "name": "paymentHistories",
+    "topic": "payment_history",
+    "vars": {
+        "time_offset": {
+            "_gen": "uniformDistribution",
+            "bounds": [0,31560192000],
+            "decimals": 0
+        },
+        "applicantProfile": {
+            "_gen": "oneOf",
+            "choices": [
+                {
+                    "applicant": {
+                        "_gen": "lookup",
+                        "name": "highCreditScores",
+                        "path": []
+                    },
+                    "payment": {
+                        "_gen": "loadJsonFile",
+                        "file": "/home/generators/paymentSuccess.json"
+                    }
+                },
+                {
+                    "applicant": {
+                        "_gen": "lookup",
+                        "name": "sampleHighCreditScoreApplicant",
+                        "path": []
+                    },
+                    "payment": {
+                        "_gen": "loadJsonFile",
+                        "file": "/home/generators/paymentSuccess.json"
+                    }
+                },
+                {
+                    "applicant": {
+                        "_gen": "lookup",
+                        "name": "mediumCreditScores",
+                        "path": []
+                    },
+                    "payment": {
+                        "_gen": "weightedOneOf",
+                        "choices": [
+                            {
+                                "weight": 9,
+                                "value": {
+                                    "_gen": "loadJsonFile",
+                                    "file": "/home/generators/paymentSuccess.json"
+                                }
+                            },
+                            {
+                                "weight": 1,
+                                "value": {
+                                    "_gen": "loadJsonFile",
+                                    "file": "/home/generators/paymentFailure.json"
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "applicant": {
+                        "_gen": "lookup",
+                        "name": "lowCreditScores",
+                        "path": []
+                    },
+                    "payment": {
+                        "_gen": "weightedOneOf",
+                        "choices": [
+                            {
+                                "weight": 2,
+                                "value": {
+                                    "_gen": "loadJsonFile",
+                                    "file": "/home/generators/paymentSuccess.json"
+                                }
+                            },
+                            {
+                                "weight": 8,
+                                "value": {
+                                    "_gen": "loadJsonFile",
+                                    "file": "/home/generators/paymentFailure.json"
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "applicant": {
+                        "_gen": "lookup",
+                        "name": "sampleLowCreditScoreApplicant",
+                        "path": []
+                    },
+                    "payment": {
+                        "_gen": "weightedOneOf",
+                        "choices": [
+                            {
+                                "weight": 2,
+                                "value": {
+                                    "_gen": "loadJsonFile",
+                                    "file": "/home/generators/paymentSuccess.json"
+                                }
+                            },
+                            {
+                                "weight": 8,
+                                "value": {
+                                    "_gen": "loadJsonFile",
+                                    "file": "/home/generators/paymentFailure.json"
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    },
+    "value": {
+        "transaction_id": {
+            "_gen": "sequentialString",
+            "startingFrom": 3000000,
+            "expr": "TX-~d"
+        },
+        "applicant_id": {
+            "_gen": "var",
+            "var": "applicantProfile",
+            "path": ["applicant", "row", "applicant_id"]
+        },
+        "method": {
+            "_gen": "string",
+            "expr": "auto-debit"
+        },
+        "status": {
+            "_gen": "var",
+            "var": "applicantProfile",
+            "path": ["payment", "status"]
+        },
+        "failure_reason": {
+            "_gen": "var",
+            "var": "applicantProfile",
+            "path": ["payment", "failure_reason"]
+        },
+        "amount": {
+            "_gen": "uniformDistribution",
+            "bounds": [100, 500],
+            "decimals": 0
+        },
+        "payment_date": {
+            "_gen": "formatDateTime",
+            "ms": {
+                "_gen": "math",
+                "expr": "timestamp - offset",
+                "names": {
+                    "timestamp": {
+                        "_gen": "now"
+                    },
+                    "offset": {
+                        "_gen": "var",
+                        "var": "time_offset"
+                    },
+                    "format": "yyyy-MM-dd"
+                }
+            }
+        }
+    },
+    "localConfigs" : {
+        "kafkaValueAvroSchemaHint": {
+            "type": "record",
+            "name": "PaymentHistory",
+            "fields": [
+                {
+                    "name": "transaction_id",
+                    "type": "string"
+                },
+                {
+                    "name": "applicant_id",
+                    "type": "string"
+                },
+                {
+                    "name": "method",
+                    "type": "string"
+                },
+                {
+                    "name": "amount",
+                    "type": "long"
+                },
+                {
+                    "name": "status",
+                    "type": "string"
+                },
+                {
+                    "name": "failure_reason",
+                    "type": "string"
+                },
+                {
+                    "name": "payment_date",
+                    "type": "string"
+                }
+            ] 
+        }
+    }
+}

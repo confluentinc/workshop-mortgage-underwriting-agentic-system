@@ -1,0 +1,8 @@
+Flask==2.0.1
+Werkzeug==2.0.3
+confluent-kafka==2.0.2
+python-dotenv==0.19.0
+requests==2.31.0
+gunicorn==20.1.0
+avro-python3==1.10.2
+fastavro==1.9.4 

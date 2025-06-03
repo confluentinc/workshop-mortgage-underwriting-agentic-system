@@ -1,0 +1,24 @@
+{
+    "applicant_id": {
+        "_gen": "ulid"
+    },
+    "applicant_name": {
+        "_gen": "string",
+        "expr": "#{Name.fullName}"
+    },
+    "open_credit_accounts": {
+        "_gen": "uniformDistribution",
+        "bounds": [0, 5],
+        "decimals": 0
+    },
+    "total_credit_limit": {
+        "_gen": "uniformDistribution",
+        "bounds": [1000, 50000],
+        "decimals": 0
+    },
+    "credit_utilization": {
+        "_gen": "uniformDistribution",
+        "bounds": [0, 100],
+        "decimals": 1
+    }
+}
