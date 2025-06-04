@@ -15,6 +15,41 @@ By the end of this lab, the entire mortgage application process will be fully au
 
 Before starting this lab, make sure you have completed [**Lab 1 – Connecting and Pre-processing Mortgage Applications**](../lab1/lab1-README.md).
 
+## 🔓 Enabling Claude Sonnet 3.7 on Your AWS Account
+
+To enable **Claude 3.7 Sonnet** in your AWS account via Amazon Bedrock:
+
+1. Open the [Amazon Bedrock Console](https://console.aws.amazon.com/bedrock/home?/overview), make sure you are in the same region.
+2. In the left sidebar, under **Bedrock configuration**, click **Model access**.
+3. Locate **Claude 3.7 Sonnet** in the list of available models.
+4. Click **Available to request**, then select **Request model access**.
+5. In the request wizard, click **Next** and follow the prompts to complete the request.
+
+![Model Access in Bedrock Console](./assets/lab2-bedrock1.png)
+
+⏱️ *Provisioning may take 5–10 minutes.*
+
+Once enabled, you’ll need to retrieve the **model ID** for use in your applications.
+
+3. In the Bedrock UI, navigate to **Anthropic**, then select the **Claude Sonnet 3.7** model.
+
+   - In the **Details** section, locate the **Model ID**.
+   - Copy this value — you’ll need it later. The Model ID should look something like:
+      ```
+      anthropic.claude-3-7-sonnet-20250219-v1:0
+      ```
+4. We’ll use this model ID to construct the endpoint for invoking the model.
+
+   > **Note:** Prefix the `<model_id>` with `us.` for US-based regions or `eu.` for EU-based regions.  
+   > Omitting the region prefix will prevent successful model invocation.
+   
+   Example (us-east-1):
+      ```
+      https://bedrock-runtime.us-east-1.amazonaws.com/model/us.anthropic.claude-3-7-sonnet-20250219-v1:0/invoke
+      ```
+
+We will use this endpoint later in the lab.
+
 ## **Agent 1: Fraud and Credit Risk Assesment**
 
 ![Architecture](./assets/lab2-lambda-hld.png)
@@ -43,6 +78,7 @@ This agent runs on AWS Lambda, so we will use the fully managed Lambda Sink Conn
       - **Invocation Type** to `async`.
       - **Batch size** to `1`.
       - **Socket Timeout** to `600000`.
+
    ![Screenshot](./assets/lab2-lambdasink4.png)
 
    - Click **Continue**
@@ -78,24 +114,7 @@ We will use the built-in [`ml_predict()`](https://docs.confluent.io/cloud/curren
    ```
    - Enter email and password
 
-3. Get the model endpoint from Bedrock:
-   - In your web browser, navigate to the AWS Bedrock page.
-   - Click on **Anthropic**, then **Claude Sonnet 3.7** model.
-   - At the bottom of the page, get the modelId of the model from the API request example. Copy this value as we will need them in the next step. The model endpoint should be
-      ```
-      https://bedrock-runtime.<CLOUD_REGION>.amazonaws.com/model/<MODEL_ID>/invoke
-      ```
-      For example:
-      ```
-      https://bedrock-runtime.us-east-2.amazonaws.com/model/anthropic.claude-3-7-sonnet-20250219-v1:0/invoke
-      ```
-
-4. Run the following command to create a connection resource named `bedrock-claude-connection` that uses your AWS credentials.
-
-   > **NOTE:** Prefix `<model_id>` with `us.` for US-based regions and `eu.` for EU regions.  
-   > Failing to do so will prevent you from invoking the model later.
-
-   Here is an example of US Region:
+3. Run the following command to create a connection resource named `bedrock-claude-connection` that uses your AWS credentials.
 
    ```
    confluent flink connection create bedrock-claude-connection \
@@ -109,7 +128,7 @@ We will use the built-in [`ml_predict()`](https://docs.confluent.io/cloud/curren
    --aws-session-token $AWS_SESSION_TOKEN
    ```
 
-5. In Flink workspace, create the model
+4. In Flink workspace, create the model
    ```sql
    CREATE MODEL loan_eligibility_model
    INPUT(message STRING)
@@ -126,7 +145,7 @@ We will use the built-in [`ml_predict()`](https://docs.confluent.io/cloud/curren
    );
    ```
 
-6. Start Agent 2
+5. Start Agent 2
 
    ```sql
    SET 'client.statement-name' = 'mortgage_decisions-materializer';
@@ -200,7 +219,7 @@ We will use the built-in [`ml_predict()`](https://docs.confluent.io/cloud/curren
    > You should now have **three cells** with queries running continuously. Two from the previous lab and this one.
 
 
-7. In a new cell, check the output of `mortgage_decisions`
+6. In a new cell, check the output of `mortgage_decisions`
 
    ```sql
    SELECT * FROM mortgage_decisions;
