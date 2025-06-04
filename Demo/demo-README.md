@@ -32,7 +32,7 @@ Follow the steps below to submit two mortgage applications: one for a high-credi
    - **Loan Amount**: `150000`
    - **Annual Income:** `500000`
 
-   > NOTE: Note: The name must be John Doe to match an existing applicant with a known high credit score.
+   > NOTE: The name must be John Doe to match an existing applicant with a known high credit score.
    >
    > The loan amount must be less than or equal to the property value.
 
@@ -47,14 +47,14 @@ Follow the steps below to submit two mortgage applications: one for a high-credi
 
 - Checkout the application after adding credit score data:
    ```sql
-   SELECT * FROM enriched_mortgage_application WHERE
+   SELECT * FROM `enriched_mortgage_applications` WHERE `borrower_name`= 'John Doe'
    ```
    You will see John has high credit score
 - Checkout his historical payments
    ```sql
-   SELECT * FROM `enriched_mortgage_applications` WHERE `borrower_name` = 'John Doe'
+   SELECT * FROM `enriched_mortgage_with_payments` WHERE `borrower_name` = 'John Doe'
    ```
-   > NOTE: Output might take 1 or 2 mins to populate.
+   > NOTE: Output might take 5-7 mins to populate.
 - Checkout his Fraud and Credit Risk score
    ```sql
    SELECT * FROM `mortgage_validated_apps` WHERE borrower_name = 'John Doe'
@@ -66,7 +66,7 @@ Follow the steps below to submit two mortgage applications: one for a high-credi
    Because of his high credit score and high income he got approved.
 - Checkout the mortgage offer
    ```sql
-   SELECT * FROM mortgage_decisions WHERE borrower_name = 'John Doe' 
+   SELECT * FROM mortgage_final_decisions WHERE borrower_name = 'John Doe' 
    ```
 
 5. Do the same for a low credit score applicant `Omer Soli`.

@@ -20,15 +20,15 @@ Before you begin, ensure you have the following installed:
 
 ## Setup
 
-1.  Clone the repo onto your local development machine using `git clone https://github.com/confluentinc/mortgage-underwriting-multi-agent-system`.
+1.  Clone the repo onto your local development machine using `git clone https://github.com/confluentinc/workshop-mortgage-underwriting-agentic-system.git`.
 2. Change directory to demo repository and terraform directory.
 
    ```
-   cd mortgage-underwriting-multi-agent-system/terraform
+   cd workshop-mortgage-underwriting-agentic-system
    ```
 3. Configure AWS CLI
 
-   If you already have the AWS CLI configured on your machine, you can skip this step.
+   If you already have the AWS CLI configured on your machine and pointing to the correct AWS account, you can skip this step.
 
    If you're using **AWS Workshop Studio**, click on **Get AWS CLI Credentials** to retrieve the necessary access key, secret key, and region. Then, run the following command to configure the CLI:
    <details>
@@ -86,7 +86,7 @@ Before you begin, ensure you have the following installed:
 6. Deploy Infrastructure
 
    ```bash
-   terraform apply
+   terraform apply --auto-approve
    ```
 
 Terraform will take around 20 mins to deploy and it will deploy the following infrstructure components:
@@ -119,6 +119,7 @@ Once the infrastructure is deployed, we can generate mortgage data. We'll use **
 
 4. Inside the `data-gen` directory, create a file named `license.env` and add your license variables.
 
+
    The file should look like this:
    ```
    LICENSE_ID=e2c218c6-00ef-41d3-8c93-7debea33266e
@@ -147,7 +148,9 @@ Once the infrastructure is deployed, we can generate mortgage data. We'll use **
 
    </details>
 
-4. To verify that the data has been successfully generated, go to the [Confluent Cloud Topic UI](https://confluent.cloud/go/topics). Select your environment and cluster, then click on the `mortgage_applications` topic to confirm that data is being produced.
+   > NOTE: Shadow Traffic is configure to generate a new mortgage application every 10 mins.
+
+4. To verify that the data has been successfully generated, go to the [Confluent Cloud Topic UI](https://confluent.cloud/go/topics). Select your environment and cluster, then click on the `payment_history` topic to confirm that data is being produced.
 
    ![Architecture](./assets/verify.png)
 
@@ -165,6 +168,8 @@ This workshop includes two labs:
 2. [**Lab 2 – Building AI Agents to process Mortgage Applications**](./lab2/lab2-README.md):  
    Use **Confluent Cloud for Apache Flink**, **AWS Lambda**, **Amazon Bedrock** to build three AI agents that run sequentially to fully automate the mortgage application process.
 
+
+After completing Labs 1 and 2, you can run an end-to-end [demo](../Demo/demo-README.md) by submitting an application for a high-credit customer.
 
 
 ## Topics

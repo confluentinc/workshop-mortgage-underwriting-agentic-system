@@ -114,6 +114,8 @@ We will now use the **Flink Table API** to enrich mortgage applications with cre
 
    ![Enriched Mortgage Applications](./assets/lab1-table1.png)
 
+   > **NOTE: You might not have any data as the data gemerator will generate a mortgage application every 10-15 mins.**
+
 
 
 ## **Using Flink SQL to enrich Mortgage applications with Historical payments**
@@ -239,6 +241,8 @@ Then, we will perform a **temporal join** between `enriched_mortgage_application
    SELECT * FROM enriched_mortgage_with_payments
    ```
 
+      > **NOTE: You might not have any data as the data gemerator will generate a mortgage application every 10-15 mins.**
+
 We are now ready to move over to building our AI Agents.
 
 ## Topics
@@ -246,12 +250,3 @@ We are now ready to move over to building our AI Agents.
 **Next topic:** [**Lab 2 – Building AI Agents to process Mortgage Applications**](../lab2/lab2-README.md)
 
 **Previous topic:** [**Deployment**](../README.md)
-
-
-
-
-
-
-
-
-

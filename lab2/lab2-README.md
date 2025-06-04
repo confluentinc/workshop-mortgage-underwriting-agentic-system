@@ -114,7 +114,33 @@ We will use the built-in [`ml_predict()`](https://docs.confluent.io/cloud/curren
    ```
    - Enter email and password
 
-3. Run the following command to create a connection resource named `bedrock-claude-connection` that uses your AWS credentials.
+3. Configure AWS Environment variables if you are using a new terminal.
+
+   If you're using **AWS Workshop Studio**, click on **Get AWS CLI Credentials** to retrieve the necessary access key, secret key, and region. Then, run the following command to configure the CLI:
+   <details>
+   <summary>Click to expand for MAC</summary>
+
+   ```
+   export AWS_DEFAULT_REGION="<cloud_region>"
+   export AWS_ACCESS_KEY_ID="<AWS_API_KEY>"
+   export AWS_SECRET_ACCESS_KEY="<AWS_SECRET>"
+   export AWS_SESSION_TOKEN="<AWS_SESSION_TOKEN>"
+   ```
+
+   </details>
+
+   <details>
+   <summary>Click to expand for Windows CMD</summary>
+
+   ```
+   set AWS_DEFAULT_REGION="<cloud_region>"
+   set AWS_ACCESS_KEY_ID="<AWS_API_KEY>"
+   set AWS_SECRET_ACCESS_KEY="<AWS_SECRET>"
+   set AWS_SESSION_TOKEN="<AWS_SESSION_TOKEN>"
+   ```
+   </details>
+
+4. Run the following command to create a connection resource named `bedrock-claude-connection` that uses your AWS credentials.
 
    ```
    confluent flink connection create bedrock-claude-connection \
@@ -128,7 +154,7 @@ We will use the built-in [`ml_predict()`](https://docs.confluent.io/cloud/curren
    --aws-session-token $AWS_SESSION_TOKEN
    ```
 
-4. In Flink workspace, create the model
+5. In Flink workspace, create the model
    ```sql
    CREATE MODEL loan_eligibility_model
    INPUT(message STRING)
@@ -145,7 +171,7 @@ We will use the built-in [`ml_predict()`](https://docs.confluent.io/cloud/curren
    );
    ```
 
-5. Start Agent 2
+6. Start Agent 2
 
    ```sql
    SET 'client.statement-name' = 'mortgage_decisions-materializer';
@@ -219,7 +245,7 @@ We will use the built-in [`ml_predict()`](https://docs.confluent.io/cloud/curren
    > You should now have **three cells** with queries running continuously. Two from the previous lab and this one.
 
 
-6. In a new cell, check the output of `mortgage_decisions`
+7. In a new cell, check the output of `mortgage_decisions`
 
    ```sql
    SELECT * FROM mortgage_decisions;

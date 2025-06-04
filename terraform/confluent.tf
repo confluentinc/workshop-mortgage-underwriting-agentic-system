@@ -271,6 +271,7 @@ output "oracle_xstream_connector" {
     table_inclusion_regex = "SAMPLE.*"
     topic_prefix = "PROD"
     decimal_handling_mode = "double"
+    Total_number_Oracle_processors_license = 1
   }
 }
 
