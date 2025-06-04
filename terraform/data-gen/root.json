@@ -25,7 +25,7 @@
                 },
                 "credit_utilization": {
                     "_gen": "uniformDistribution",
-                    "bounds": [0, 100],
+                    "bounds": [0, 20],
                     "decimals": 1
                 },
                 "credit_score": {
