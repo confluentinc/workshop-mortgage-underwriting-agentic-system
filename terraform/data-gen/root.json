@@ -176,7 +176,7 @@
                         "localConfigs":   {
                             "throttleMs": {
                                 "_gen": "uniformDistribution",
-                                "bounds": [50000, 55000]
+                                "bounds": [80000, 85000]
                             }
                         }
                     },
@@ -184,7 +184,7 @@
                         "localConfigs": {
                             "throttleMs": {
                                 "_gen": "uniformDistribution",
-                                "bounds": [60000, 65000]
+                                "bounds": [90000, 95000]
                             }
                         }
                     }
