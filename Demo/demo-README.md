@@ -69,7 +69,7 @@ Follow the steps below to submit two mortgage applications: one for a high-credi
    SELECT * FROM mortgage_final_decisions WHERE borrower_name = 'John Doe' 
    ```
 
-5. Do the same for a low credit score applicant `Omer Soli`.
+5. Do the same for a low credit score applicant `Omar Soli`.
 
 
 ## Topics
