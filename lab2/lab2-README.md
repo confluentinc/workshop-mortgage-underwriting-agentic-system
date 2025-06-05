@@ -83,14 +83,9 @@ This agent runs on AWS Lambda, so we will use the fully managed Lambda Sink Conn
 
    - Click **Continue**
 
+6. Follow the wizard to create the connector.
 
-6. For sizing, set the number to Tasks to `6`
-
-      ![Screenshot](./assets/lab2-lambdasink5.png)
-
-7. Follow the wizard to create the connector.
-
-8. After a few minutes, the connector should be up and running. Data will begin flowing to the Lambda Function.
+7. After a few minutes, the connector should be up and running. Data will begin flowing to the Lambda Function.
 
  To verify that the connector is working properly, in the Flink workspace, run this and check the risk scores for all application. 
 
@@ -98,6 +93,11 @@ This agent runs on AWS Lambda, so we will use the fully managed Lambda Sink Conn
  SELECT * FROM mortgage_validated_apps
  ```
  Checkout the `agent_reasoning` for John.
+
+> ⚠️ **Note:** If you're using **AWS Workshop Studio**, be aware that **Bedrock service limits are reduced** for security reasons. As a result, some requests may be throttled.  
+>  
+> **Important:** The provided Lambda function does **not** include a retry mechanism, so throttled requests may be lost during the workshop. In a production environment, you should implement a robust retry strategy to handle such cases gracefully.
+
 
  ## **Agent 2: Mortgage Desicion**
 
@@ -173,6 +173,11 @@ We will use the built-in [`ml_predict()`](https://docs.confluent.io/cloud/curren
    ```
 
 6. Start Agent 2
+
+> ⚠️ **Note:** If you're using **AWS Workshop Studio**, be aware that **Bedrock service limits are reduced** for security reasons. As a result, some requests may be throttled.  
+>  
+> **Important:** The Flink job may fail if the message backlog exceeds **6 messages**, due to the current **Bedrock limit of 6 requests per minute** in AWS Workshop Studio.
+
 
    ```sql
    SET 'client.statement-name' = 'mortgage_decisions-materializer';
@@ -294,6 +299,10 @@ We now have mortgage decisions and are ready to generate offers and rejection le
    ```
 
 2. Build Agent 3
+
+> ⚠️ **Note:** If you're using **AWS Workshop Studio**, be aware that **Bedrock service limits are reduced** for security reasons. As a result, some requests may be throttled.  
+>  
+> **Important:** The Flink job may fail if the message backlog exceeds **6 messages**, due to the current **Bedrock limit of 6 requests per minute** in AWS Workshop Studio.
 
    ```sql
    SET 'client.statement-name' = 'mortgage-final-decisions-materializer';

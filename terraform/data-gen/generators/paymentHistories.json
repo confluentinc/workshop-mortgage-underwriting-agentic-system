@@ -9,106 +9,122 @@
             "decimals": 0
         },
         "applicantProfile": {
-            "_gen": "oneOf",
+            "_gen": "weightedOneOf",
             "choices": [
                 {
-                    "applicant": {
-                        "_gen": "lookup",
-                        "name": "highCreditScores",
-                        "path": []
-                    },
-                    "payment": {
-                        "_gen": "loadJsonFile",
-                        "file": "/home/generators/paymentSuccess.json"
+                    "weight": 200,
+                    "value": {
+                        "applicant": {
+                            "_gen": "lookup",
+                            "name": "highCreditScores",
+                            "path": []
+                        },
+                        "payment": {
+                            "_gen": "loadJsonFile",
+                            "file": "/home/generators/paymentSuccess.json"
+                        }
+                    }
+
+                },
+                {
+                    "weight": 1,
+                    "value": {
+                        "applicant": {
+                            "_gen": "lookup",
+                            "name": "sampleHighCreditScoreApplicant",
+                            "path": []
+                        },
+                        "payment": {
+                            "_gen": "loadJsonFile",
+                            "file": "/home/generators/paymentSuccess.json"
+                        }
                     }
                 },
                 {
-                    "applicant": {
-                        "_gen": "lookup",
-                        "name": "sampleHighCreditScoreApplicant",
-                        "path": []
-                    },
-                    "payment": {
-                        "_gen": "loadJsonFile",
-                        "file": "/home/generators/paymentSuccess.json"
+                    "weight": 200,
+                    "value": {
+                        "applicant": {
+                            "_gen": "lookup",
+                            "name": "mediumCreditScores",
+                            "path": []
+                        },
+                        "payment": {
+                            "_gen": "weightedOneOf",
+                            "choices": [
+                                {
+                                    "weight": 9,
+                                    "value": {
+                                        "_gen": "loadJsonFile",
+                                        "file": "/home/generators/paymentSuccess.json"
+                                    }
+                                },
+                                {
+                                    "weight": 1,
+                                    "value": {
+                                        "_gen": "loadJsonFile",
+                                        "file": "/home/generators/paymentFailure.json"
+                                    }
+                                }
+                            ]
+                        }
                     }
                 },
                 {
-                    "applicant": {
-                        "_gen": "lookup",
-                        "name": "mediumCreditScores",
-                        "path": []
-                    },
-                    "payment": {
-                        "_gen": "weightedOneOf",
-                        "choices": [
-                            {
-                                "weight": 9,
-                                "value": {
-                                    "_gen": "loadJsonFile",
-                                    "file": "/home/generators/paymentSuccess.json"
+                    "weight": 200,
+                    "value": {
+                        "applicant": {
+                            "_gen": "lookup",
+                            "name": "lowCreditScores",
+                            "path": []
+                        },
+                        "payment": {
+                            "_gen": "weightedOneOf",
+                            "choices": [
+                                {
+                                    "weight": 2,
+                                    "value": {
+                                        "_gen": "loadJsonFile",
+                                        "file": "/home/generators/paymentSuccess.json"
+                                    }
+                                },
+                                {
+                                    "weight": 8,
+                                    "value": {
+                                        "_gen": "loadJsonFile",
+                                        "file": "/home/generators/paymentFailure.json"
+                                    }
                                 }
-                            },
-                            {
-                                "weight": 1,
-                                "value": {
-                                    "_gen": "loadJsonFile",
-                                    "file": "/home/generators/paymentFailure.json"
-                                }
-                            }
-                        ]
+                            ]
+                        }
                     }
                 },
                 {
-                    "applicant": {
-                        "_gen": "lookup",
-                        "name": "lowCreditScores",
-                        "path": []
-                    },
-                    "payment": {
-                        "_gen": "weightedOneOf",
-                        "choices": [
-                            {
-                                "weight": 2,
-                                "value": {
-                                    "_gen": "loadJsonFile",
-                                    "file": "/home/generators/paymentSuccess.json"
+                    "weight": 1,
+                    "value": {
+                        "applicant": {
+                            "_gen": "lookup",
+                            "name": "sampleLowCreditScoreApplicant",
+                            "path": []
+                        },
+                        "payment": {
+                            "_gen": "weightedOneOf",
+                            "choices": [
+                                {
+                                    "weight": 2,
+                                    "value": {
+                                        "_gen": "loadJsonFile",
+                                        "file": "/home/generators/paymentSuccess.json"
+                                    }
+                                },
+                                {
+                                    "weight": 8,
+                                    "value": {
+                                        "_gen": "loadJsonFile",
+                                        "file": "/home/generators/paymentFailure.json"
+                                    }
                                 }
-                            },
-                            {
-                                "weight": 8,
-                                "value": {
-                                    "_gen": "loadJsonFile",
-                                    "file": "/home/generators/paymentFailure.json"
-                                }
-                            }
-                        ]
-                    }
-                },
-                {
-                    "applicant": {
-                        "_gen": "lookup",
-                        "name": "sampleLowCreditScoreApplicant",
-                        "path": []
-                    },
-                    "payment": {
-                        "_gen": "weightedOneOf",
-                        "choices": [
-                            {
-                                "weight": 2,
-                                "value": {
-                                    "_gen": "loadJsonFile",
-                                    "file": "/home/generators/paymentSuccess.json"
-                                }
-                            },
-                            {
-                                "weight": 8,
-                                "value": {
-                                    "_gen": "loadJsonFile",
-                                    "file": "/home/generators/paymentFailure.json"
-                                }
-                            }
-                        ]
+                            ]
+                        }
                     }
                 }
             ]

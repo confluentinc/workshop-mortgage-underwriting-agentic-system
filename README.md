@@ -14,7 +14,8 @@ Before you begin, ensure you have the following installed:
 - [Terraform](https://www.terraform.io/downloads.html) - v1.5.7 or later 
 - [AWS CLI](https://aws.amazon.com/cli/) configured with appropriate credentials
 - [Docker](https://www.docker.com/get-started) - 28.1.1 or later
-- **Java and Maven** installed on your laptop
+- **Java** installed on your laptop - 17 or later
+- **Maven** installed on your laptop - 3.9.9 or later
 - [Optional] [Databricks Account](https://login.databricks.com/?intent=signup) - To analyze Mortgage desisions 
 
 
@@ -130,6 +131,12 @@ Once the infrastructure is deployed, we can generate mortgage data. We'll use **
    LICENSE_SIGNATURE=rbnDYGuNaxk7j5HwdsNzJz4dDROlLX3Haf5tjBOwCJv7Y5rNg6D0TcJQA/gODKiQhY5f1rg9g1pPDiSuZUFfY9lUZGGx99HquZAAENDotezebIY1ILf8DVDSq9hchvYyceuL1irNgynpaSvfh+EeakeGQBbm6FtihWEJmhUMjQoJVMyckV9z9OVMhluWI3PAKLI8ryelOc3QsZiKoIwlledY5fYzvUZwOBG+GpLOps15xgTJGFVDTy206xXzPdCGMh5DTwh7hXYyHfcZepiV2DGqEk+MPGQGxuKvGuiOnE/FhPjdj2BUJWyEswo6MPpgsyl4FVcLj/lfgWAi+Gt/Pg==
    ```
 5. Run ShadowTraffic
+
+   > ⚠️ **Note:** If you're using **AWS Workshop Studio**, start data generation **immediately before beginning the workshop** and try to **avoid taking long breaks**.  
+   >  
+   > Due to reduced Bedrock service limits in Workshop Studio, taking long breaks can cause the message backlog to grow. This increases the risk of request throttling when running agents later in the workshop.
+
+
    <details>
    <summary>Click to expand for MAC</summary>
 

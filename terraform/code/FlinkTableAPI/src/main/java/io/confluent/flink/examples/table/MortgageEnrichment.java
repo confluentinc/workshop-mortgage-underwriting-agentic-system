@@ -58,9 +58,6 @@ public class MortgageEnrichment {
                                         .column("recent_defaults", DataTypes.DOUBLE())
                                         .column("debt_to_income_ratio", DataTypes.DOUBLE())
                                         .column("application_ts", DataTypes.TIMESTAMP_LTZ(3))
-                                        .watermark(
-                                                "application_ts",
-                                                "application_ts - INTERVAL '5' SECOND")
                                         .build())
                         .option("kafka.retention.time", "0")
                         .option("value.format", "avro-registry")

@@ -158,7 +158,7 @@
                 "overrides": {
                     "paymentHistories": {
                         "localConfigs": {
-                            "maxEvents": 10000
+                            "maxEvents": 700
                         }
                     }
                 }

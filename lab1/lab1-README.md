@@ -226,7 +226,7 @@ Then, we will perform a **temporal join** between `enriched_mortgage_application
    m.application_ts,
    p.payment_history
    FROM `enriched_mortgage_applications` m
-   LEFT JOIN `applicant_payment_summary` FOR SYSTEM_TIME AS OF m.application_ts AS p
+   LEFT JOIN `applicant_payment_summary` FOR SYSTEM_TIME AS OF m.`$rowtime` AS p
    ON m.applicant_id = p.applicant_id;
    ```
 
@@ -240,6 +240,8 @@ Then, we will perform a **temporal join** between `enriched_mortgage_application
    ```sql
    SELECT * FROM enriched_mortgage_with_payments
    ```
+
+   >NOTE: Some applicants will not have any historical payments.
 
 checkout John's application
 
