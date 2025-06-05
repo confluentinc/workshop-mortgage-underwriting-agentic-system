@@ -92,11 +92,12 @@ This agent runs on AWS Lambda, so we will use the fully managed Lambda Sink Conn
 
 8. After a few minutes, the connector should be up and running. Data will begin flowing to the Lambda Function.
 
- To verify that the connector is working properly, in the Flink workspace, run this and check the ris scores.
+ To verify that the connector is working properly, in the Flink workspace, run this and check the risk scores for all application. 
 
  ```sql
  SELECT * FROM mortgage_validated_apps
  ```
+ Checkout the `agent_reasoning` for John.
 
  ## **Agent 2: Mortgage Desicion**
 
@@ -251,6 +252,10 @@ We will use the built-in [`ml_predict()`](https://docs.confluent.io/cloud/curren
    SELECT * FROM mortgage_decisions;
    ```
 
+8. Checkout John's application
+   ```sql
+   SELECT * FROM mortgage_decisions WHERE borrower_name = 'John Doe';
+   ```
 
 We now have mortgage decisions and are ready to generate offers and rejection letters.
 
@@ -342,7 +347,11 @@ We now have mortgage decisions and are ready to generate offers and rejection le
    SELECT * FROM mortgage_final_decisions;
    ```
 
+8. Checkout John's letter
 
+   ```sql
+   SELECT * FROM mortgage_final_decisions WHERE borrower_name = 'John Doe';
+   ```
 
 ## Topics
 

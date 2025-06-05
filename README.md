@@ -148,12 +148,45 @@ Once the infrastructure is deployed, we can generate mortgage data. We'll use **
 
    </details>
 
+   > NOTE: Leave this terminal open all the time.
    > NOTE: Shadow Traffic is configure to generate a new mortgage application every 10 mins.
 
 4. To verify that the data has been successfully generated, go to the [Confluent Cloud Topic UI](https://confluent.cloud/go/topics). Select your environment and cluster, then click on the `payment_history` topic to confirm that data is being produced.
 
    ![Architecture](./assets/verify.png)
 
+
+### Submit a Mortgage Application from the Website
+
+Submit a Mortgage application for `John Doe` - an applicant with high-credit-score.
+
+1. Open a new terminal and navigate to your Terraform directory and run:
+   ```bash
+   terraform output
+   ```
+
+   Look for the value of `webapp_endpoint`. It should look like this:
+
+   ```
+   agentic-webapp-c4e83e7c-583734374.us-east-2.elb.amazonaws.com
+   ```
+
+2. Open the URL in your browser.
+3. Submit a new application using the following details:
+
+
+   - **Full Name**: `John Doe`
+   - **Property Value:** `200000`
+   - **Loan Amount**: `150000`
+   - **Annual Income:** `500000`
+
+   > NOTE: The name must be John Doe to match an existing applicant with a known high credit score.
+   >
+   > The loan amount must be less than or equal to the property value.
+
+   ![Architecture](./assets/demo1.png)
+
+4. To verify that the data has been successfully generated, go to the [Confluent Cloud Topic UI](https://confluent.cloud/go/topics). Select your environment and cluster, then click on the `mortgage_applications`, you should see the new application there.
 
 
 ## Demo

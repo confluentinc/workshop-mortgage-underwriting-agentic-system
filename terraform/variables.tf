@@ -13,7 +13,7 @@ variable "prefix" {
 variable "cloud_region"{
   description = "AWS Cloud Region"
   type        = string
-  default     = "us-east-2"    
+  default     = "us-west-2"    
 }
 
 variable "db_username"{

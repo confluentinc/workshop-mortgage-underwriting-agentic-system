@@ -114,7 +114,7 @@ We will now use the **Flink Table API** to enrich mortgage applications with cre
 
    ![Enriched Mortgage Applications](./assets/lab1-table1.png)
 
-   > **NOTE: You might not have any data as the data gemerator will generate a mortgage application every 10-15 mins.**
+   > **NOTE: You should see John's application in there.**
 
 
 
@@ -235,13 +235,17 @@ Then, we will perform a **temporal join** between `enriched_mortgage_application
    > You should now have **two cells** with queries running continuously.
 
 
-2. In a new cell, check the output of `applicant_payment_summay`
+2. In a new cell, check the output of `enriched_mortgage_with_payments`
 
    ```sql
    SELECT * FROM enriched_mortgage_with_payments
    ```
 
-      > **NOTE: You might not have any data as the data gemerator will generate a mortgage application every 10-15 mins.**
+checkout John's application
+
+   ```sql
+   SELECT * FROM enriched_mortgage_with_payments WHERE borrower_name = 'John Doe'
+   ```
 
 We are now ready to move over to building our AI Agents.
 

@@ -10,7 +10,7 @@ Before starting this demo, make sure you have completed [**Lab 1 – Connecting 
 
 ## Demo
 
-Follow the steps below to submit two mortgage applications: one for a high-credit score customer and one for a low-credit score customer.
+We already submitted a mortgage appliaction for `John Doe` a high credit score applicant. Follow the steps below to submit a mortgage application for a low-credit score customer.
 
 1. Navigate to your Terraform directory and run:
    ```bash
@@ -27,49 +27,47 @@ Follow the steps below to submit two mortgage applications: one for a high-credi
 3. Submit a new application using the following details:
 
 
-   - **Full Name**: `John Doe`
+   - **Full Name**: `Omar Soli`
    - **Property Value:** `200000`
    - **Loan Amount**: `150000`
-   - **Annual Income:** `500000`
+   - **Annual Income:** `200000`
 
-   > NOTE: The name must be John Doe to match an existing applicant with a known high credit score.
+   > NOTE: The name must be Omar Soli to match an existing applicant with a known low credit score.
    >
    > The loan amount must be less than or equal to the property value.
 
-   ![Architecture](./assets/demo1.png)
+   ![Architecture](./assets/demo2.png)
 
 4. Back in the [Flink UI](https://confluent.cloud/go/flink) in Confluent Cloud, run the queries below to check the application through the pipeline:
 
 - Checkout the new application:
    ```sql
-   SELECT * FROM `mortgage_applications` WHERE `customer_name` = 'John Doe' 
+   SELECT * FROM `mortgage_applications` WHERE `customer_name` = 'Omar Soli' 
    ```
 
 - Checkout the application after adding credit score data:
    ```sql
-   SELECT * FROM `enriched_mortgage_applications` WHERE `borrower_name`= 'John Doe'
+   SELECT * FROM `enriched_mortgage_applications` WHERE `borrower_name`= 'Omar Soli'
    ```
-   You will see John has high credit score
+   You will see Omar's has low credit score
 - Checkout his historical payments
    ```sql
-   SELECT * FROM `enriched_mortgage_with_payments` WHERE `borrower_name` = 'John Doe'
+   SELECT * FROM `enriched_mortgage_with_payments` WHERE `borrower_name` = 'Omar Soli'
    ```
    > NOTE: Output might take 5-7 mins to populate.
 - Checkout his Fraud and Credit Risk score
    ```sql
-   SELECT * FROM `mortgage_validated_apps` WHERE borrower_name = 'John Doe'
+   SELECT * FROM `mortgage_validated_apps` WHERE borrower_name = 'Omar Soli'
    ```
 - Checkout the mortgage decision
    ```sql
-   SELECT * FROM mortgage_decisions WHERE borrower_name = 'John Doe' 
-   ```
-   Because of his high credit score and high income he got approved.
-- Checkout the mortgage offer
-   ```sql
-   SELECT * FROM mortgage_final_decisions WHERE borrower_name = 'John Doe' 
+   SELECT * FROM mortgage_decisions WHERE borrower_name = 'Omar Soli' 
    ```
 
-5. Do the same for a low credit score applicant `Omar Soli`.
+- Checkout the mortgage offer
+   ```sql
+   SELECT * FROM mortgage_final_decisions WHERE borrower_name = 'Omar Soli' 
+   ```
 
 
 ## Topics
