@@ -39,7 +39,6 @@
 **/terraform/data-gen/connections/*.json
 **/prod.properties
 **/client.properties
-**/terraform/data-gen/license.env
 **/mortgage-application-kafka.json
 **/oracle.json
 **/payments-kafka.json
