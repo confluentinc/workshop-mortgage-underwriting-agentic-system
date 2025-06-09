@@ -42,7 +42,7 @@ winget install --id Hashicorp.Terraform -e
 winget install --id ConfluentInc.Confluent-CLI -e
 winget install --id Amazon.AWSCLI -e
 winget install --id Docker.DockerDesktop -e
-winget install --id Oracle.JDK.17 -e
+winget install --id Microsoft.OpenJDK.17 -e
 winget install --id Apache.Maven -e
 ```
 </details> 
@@ -198,7 +198,7 @@ Once the infrastructure is deployed, we can generate mortgage data. We'll use **
    <summary>Click to expand for Windows</summary>
 
    ```
-   run.bat
+   .\run.bat
    ```
 
    </details>

@@ -78,7 +78,7 @@ Finally, to prepare this topic for joining with `mortgage_applications`, we will
 7. Navigate to [Flink UI](https://confluent.cloud/go/flink) in Confluent Cloud and select the demo environment.
 8. Click on **Open SQL Workspace**.
 9. On the top right corner of your workspace select the cluster as your database.
-10. Use the query editior to run the follwoing query
+10. Use the query editior to run the following query
 
    ```sql
    ALTER TABLE `PROD.SAMPLE.APPLICANT_CREDIT_SCORE` SET ('changelog.mode' = 'append' , 'value.format' = 'avro-registry');
