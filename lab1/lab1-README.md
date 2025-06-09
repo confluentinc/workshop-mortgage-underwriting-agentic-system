@@ -102,6 +102,11 @@ We will now use the **Flink Table API** to enrich mortgage applications with cre
    ```
    mvn clean package
    ```
+
+   > ⚠️ **Note**: If you encounter this error: `Caused by: java.lang.NoSuchMethodError: 'com.sun.tools.javac.tree.JCTree com.sun.tools.javac.tree.JCTree$JCImport.getQualifiedIdentifier()'` 
+   > 
+   > Try running `mvn clean package -Dspotless.check.skip=true`
+
 4. Run the compiled application. To get the exact command, run`terraform output` from the Terraform directory. Look for the value of `Flink_exec_command.` The command should look like this:
    ```
    java -jar target/flink-table-api-java-demo-0.1.jar '<Confluent_environment_name>' '<confluent_cluster_name>'
@@ -177,34 +182,7 @@ Then, we will perform a **temporal join** between `enriched_mortgage_application
 
    ```sql
    SET 'client.statement-name' = 'enriched-mortgage-payments-materializer';
-   CREATE TABLE `enriched_mortgage_with_payments` (
-   `application_id` STRING,
-   `customer_email` STRING,
-   `borrower_name` STRING,
-   `applicant_id` STRING,
-   `income` DOUBLE,
-   `payslips` STRING,
-   `loan_amount` DOUBLE,
-   `property_address` STRING,
-   `property_state` STRING,
-   `property_value` DOUBLE,
-   `employment_status` STRING,
-   `credit_score` DOUBLE,
-   `credit_utilization` DOUBLE,
-   `open_credit_accounts` DOUBLE,
-   `recent_defaults` DOUBLE,
-   `debt_to_income_ratio` DOUBLE,
-   `application_ts` TIMESTAMP_LTZ(3),
-   `payment_history` ARRAY<ROW(
-      transaction_id STRING, 
-      `method` STRING, 
-      amount DOUBLE, 
-      status STRING, 
-      failure_reason STRING, 
-      payment_date STRING
-   )>,
-   WATERMARK FOR `application_ts` AS `application_ts` - INTERVAL '5' SECOND
-   )
+   CREATE TABLE `enriched_mortgage_with_payments`
    AS
    SELECT
    m.application_id,
@@ -240,8 +218,9 @@ Then, we will perform a **temporal join** between `enriched_mortgage_application
    ```sql
    SELECT * FROM enriched_mortgage_with_payments
    ```
+   > ⚠️ **Note**: It may take upto 2 mins for the data to appear in Flink UI.
 
-   >NOTE: Some applicants will not have any historical payments.
+   > ⚠️ **Note**:: Some applicants will not have any historical payments.
 
 checkout John's application
 

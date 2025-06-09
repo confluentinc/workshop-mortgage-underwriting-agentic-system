@@ -118,16 +118,18 @@ def submit_application():
         customer_name = data['name'].strip()
         if customer_name.lower() == 'john doe':
             applicant_id = 'C-100000'
+            random_employment_status = 'Full-employed'
         elif customer_name.lower() == 'omar soli':
             applicant_id = 'C-200000'
+            random_employment_status = 'UNEMPLOYED'
         else:
             applicant_id = f'C-3{random.randint(10000, 99999)}'
+            random_employment_status = random.choice(EMPLOYMENT_STATUSES)
 
         # Generate random values for the specified fields
         random_email = generate_random_email(data['name'])
         random_address = generate_random_address()
         random_state = random.choice(US_STATES)
-        random_employment_status = random.choice(EMPLOYMENT_STATUSES)
         random_payslips = generate_random_payslips(applicant_id)
 
         # Prepare Avro record
