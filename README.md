@@ -259,7 +259,7 @@ This workshop includes two labs:
    Use **Confluent Cloud for Apache Flink**, **AWS Lambda**, **Amazon Bedrock** to build three AI agents that run sequentially to fully automate the mortgage application process.
 
 
-After completing Labs 1 and 2, you can run an end-to-end [demo](../Demo/demo-README.md) by submitting an application for a high-credit customer.
+After completing Labs 1 and 2, you can run an end-to-end [demo](./Demo/demo-README.md) by submitting an application for a high-credit customer.
 
 
 ## Topics
