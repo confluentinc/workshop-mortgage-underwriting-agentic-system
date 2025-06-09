@@ -19,13 +19,42 @@ Before you begin, ensure you have the following installed:
 - [Optional] [Databricks Account](https://login.databricks.com/?intent=signup) - To analyze Mortgage desisions 
 
 
+
+<details>
+<summary>Installing prerequisites on MAC</summary>
+
+Install the prerequisites by running:
+
+```bash
+brew install git terraform confluentinc/tap/cli awscli maven openjdk@17 && brew install --cask docker
+```
+
+</details>
+
+<details>
+<summary>Installing prerequisites on Windows</summary>
+
+Install the prerequisites by running:
+
+```powershell
+winget install --id Git.Git -e
+winget install --id Hashicorp.Terraform -e
+winget install --id ConfluentInc.Confluent-CLI -e
+winget install --id Amazon.AWSCLI -e
+winget install --id Docker.DockerDesktop -e
+winget install --id Oracle.JDK.17 -e
+winget install --id Apache.Maven -e
+```
+</details> 
+
+
 ## Setup
 
 1.  Clone the repo onto your local development machine using `git clone https://github.com/confluentinc/workshop-mortgage-underwriting-agentic-system.git`.
 2. Change directory to demo repository and terraform directory.
 
    ```
-   cd workshop-mortgage-underwriting-agentic-system
+   cd workshop-mortgage-underwriting-agentic-system/terraform
    ```
 3. Configure AWS CLI
 
@@ -71,12 +100,29 @@ Before you begin, ensure you have the following installed:
    }
    ```
 
-5. Configure Terraform Variables byt creating a `terraform.tfvars` file with the following content:
-   ```hcl
-   confluent_cloud_api_key = "<your-confluent-cloud-api-key>"
-   confluent_cloud_api_secret = "<your-confluent-cloud-api-secret>"
-   email = "<your-email>"
+5. In `terraform` directory,  create a `terraform.tfvars` file to store the Confluent Cloud API keys required by Terraform. Replace the placeholders below with your own keys and `{your-email}` with your email.
+
+   <details>
+   <summary>Click to expand for Mac</summary>
+
+   ```bash
+   cat > ./terraform.tfvars <<EOF
+   confluent_cloud_api_key = "{Confluent Cloud API Key}"
+   confluent_cloud_api_secret = "{Confluent Cloud API Key Secret}"
+   email = "{your-email}"
+   EOF
    ```
+   </details>
+
+   <details>
+   <summary>Click to expand for Windows CMD</summary>
+
+   ```bash
+   echo confluent_cloud_api_key = "{Confluent Cloud API Key}" > terraform.tfvars
+   echo confluent_cloud_api_secret = "{Confluent Cloud API Key Secret}" >> terraform.tfvars
+   echo email = "{your-email}" >> terraform.tfvars
+   ```
+   </details>
 
 5. Initialize Terraform
 
@@ -118,19 +164,21 @@ Once the infrastructure is deployed, we can generate mortgage data. We'll use **
 
    **If you already have a license key, you can skip this step.**
 
-4. Inside the `data-gen` directory, create a file named `license.env` and add your license variables.
+   > ⚠️ **Note**: If you're running the workshop before July 1, 2025, skip this step and use the `licence.env` file included in this repository.
+   
+   - Inside the `data-gen` directory, create a file named `license.env` and add your license variables.
 
 
-   The file should look like this:
-   ```
-   LICENSE_ID=e2c218c6-00ef-41d3-8c93-7debea33266e
-   LICENSE_EMAIL=<your_email>
-   LICENSE_ORGANIZATION=<your_company>
-   LICENSE_EDITION=ShadowTraffic Free Trial
-   LICENSE_EXPIRATION=<date>
-   LICENSE_SIGNATURE=rbnDYGuNaxk7j5HwdsNzJz4dDROlLX3Haf5tjBOwCJv7Y5rNg6D0TcJQA/gODKiQhY5f1rg9g1pPDiSuZUFfY9lUZGGx99HquZAAENDotezebIY1ILf8DVDSq9hchvYyceuL1irNgynpaSvfh+EeakeGQBbm6FtihWEJmhUMjQoJVMyckV9z9OVMhluWI3PAKLI8ryelOc3QsZiKoIwlledY5fYzvUZwOBG+GpLOps15xgTJGFVDTy206xXzPdCGMh5DTwh7hXYyHfcZepiV2DGqEk+MPGQGxuKvGuiOnE/FhPjdj2BUJWyEswo6MPpgsyl4FVcLj/lfgWAi+Gt/Pg==
-   ```
-5. Run ShadowTraffic
+      The file should look like this:
+      ```
+      LICENSE_ID=e2c218c6-00ef-41d3-8c93-7debea33266e
+      LICENSE_EMAIL=<your_email>
+      LICENSE_ORGANIZATION=<your_company>
+      LICENSE_EDITION=ShadowTraffic Free Trial
+      LICENSE_EXPIRATION=<date>
+      LICENSE_SIGNATURE=rbnDYGuNaxk7j5HwdsNzJz4dDROlLX3Haf5tjBOwCJv7Y5rNg6D0TcJQA/gODKiQhY5f1rg9g1pPDiSuZUFfY9lUZGGx99HquZAAENDotezebIY1ILf8DVDSq9hchvYyceuL1irNgynpaSvfh+EeakeGQBbm6FtihWEJmhUMjQoJVMyckV9z9OVMhluWI3PAKLI8ryelOc3QsZiKoIwlledY5fYzvUZwOBG+GpLOps15xgTJGFVDTy206xXzPdCGMh5DTwh7hXYyHfcZepiV2DGqEk+MPGQGxuKvGuiOnE/FhPjdj2BUJWyEswo6MPpgsyl4FVcLj/lfgWAi+Gt/Pg==
+      ```
+4. Run ShadowTraffic
 
    > ⚠️ **Note:** If you're using **AWS Workshop Studio**, start data generation **immediately before beginning the workshop** and try to **avoid taking long breaks**.  
    >  
@@ -155,10 +203,12 @@ Once the infrastructure is deployed, we can generate mortgage data. We'll use **
 
    </details>
 
-   > NOTE: Leave this terminal open all the time.
-   > NOTE: Shadow Traffic is configure to generate a new mortgage application every 10 mins.
+   > ⚠️ **Note:** Leave this terminal open all the time.
 
-4. To verify that the data has been successfully generated, go to the [Confluent Cloud Topic UI](https://confluent.cloud/go/topics). Select your environment and cluster, then click on the `payment_history` topic to confirm that data is being produced.
+
+   > ⚠️ **Note:** Shadow Traffic is configure to generate a new mortgage application every 10 mins.
+
+5. To verify that the data has been successfully generated, go to the [Confluent Cloud Topic UI](https://confluent.cloud/go/topics). Select your environment and cluster, then click on the `payment_history` topic to confirm that data is being produced.
 
    ![Architecture](./assets/verify.png)
 

@@ -421,7 +421,15 @@ client.id=CreditFraudCheckAgent
 EOT
 }
 
-resource "null_resource" "docker_build" {
+locals {
+  # True if Windows (pathexpand("~") starts with drive letter, not "/")
+  is_windows = substr(pathexpand("~"), 0, 1) != "/"
+}
+
+# Windows-specific build
+resource "null_resource" "docker_build_windows" {
+  count = local.is_windows ? 1 : 0
+
   triggers = {
     dockerfile_hash       = filemd5(join("/", [path.module, "code", "agent1", "Dockerfile"]))
     requirements_hash     = filemd5(join("/", [path.module, "code", "agent1", "requirements.txt"]))
@@ -434,12 +442,42 @@ resource "null_resource" "docker_build" {
   ]
 
   provisioner "local-exec" {
-    command = <<-EOT
-      aws ecr get-login-password --region ${var.cloud_region} | docker login --username AWS --password-stdin ${aws_ecr_repository.lambda_repo.repository_url}
-      docker buildx build --platform linux/amd64 --push -t ${aws_ecr_repository.lambda_repo.repository_url}:latest ./code/agent1 --provenance=false --sbom=false
-    EOT
+    command = "echo ${data.aws_ecr_authorization_token.token.password} | docker login -u AWS --password-stdin ${data.aws_ecr_authorization_token.token.proxy_endpoint}"
+  }
+
+  provisioner "local-exec" {
+    command = "docker buildx build --platform linux/amd64 -t ${aws_ecr_repository.lambda_repo.repository_url}:latest ${path.module}/code/agent1 --push --provenance=false --sbom=false"
   }
 }
+
+# macOS/Linux-specific build
+resource "null_resource" "docker_build_unix" {
+  count = local.is_windows ? 0 : 1
+
+  triggers = {
+    dockerfile_hash       = filemd5(join("/", [path.module, "code", "agent1", "Dockerfile"]))
+    requirements_hash     = filemd5(join("/", [path.module, "code", "agent1", "requirements.txt"]))
+    source_code_hash      = filemd5(join("/", [path.module, "code", "agent1", "credit_and_fraud_check.py"]))
+    properties_file_hash  = local_file.lambda_properties_file.content
+  }
+
+  depends_on = [
+    local_file.lambda_properties_file
+  ]
+
+  provisioner "local-exec" {
+    when    = create
+    command = <<-EOT
+      aws ecr get-login-password --region ${var.cloud_region} | docker login --username AWS --password-stdin ${aws_ecr_repository.lambda_repo.repository_url} && \
+      docker buildx build --platform linux/amd64 --push -t ${aws_ecr_repository.lambda_repo.repository_url}:latest ./code/agent1 --provenance=false --sbom=false
+    EOT
+    on_failure = fail
+  }
+}
+
+
+
+
 
 
 
@@ -468,7 +506,10 @@ resource "aws_lambda_function" "credit_check" {
     }
   }
 
-  depends_on = [null_resource.docker_build]
+    depends_on = [
+    null_resource.docker_build_windows,
+    null_resource.docker_build_unix
+  ]
 }
 
 # IAM Role for Confluent Lambda Invocation

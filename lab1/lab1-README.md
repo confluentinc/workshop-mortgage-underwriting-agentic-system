@@ -31,13 +31,13 @@ The rules were already created by Terraform, there is no need to do anything her
    ![Data Quality Rule](./assets/lab1-msgdlq.png)
 
 
-## **Setting up the Fully managed Oracle XStream CDC Source Connector**
+## **Setting up the Fully managed Oracle XStream CDC Source Premium Connector**
 
 ![Architecture](./assets/lab1-oracle-hld.png)
 
 We will source Credit Score data from the Oracle DB to `PROD.SAMPLE.APPLICANT_CREDIT_SCORE` topic in Confluent.
 
-1. In the [Connectors UI](https://confluent.cloud/go/connectors), add a new Oracle XStream CDC Source Connector Connector.
+1. In the [Connectors UI](https://confluent.cloud/go/connectors), add a new **Oracle XStream CDC Source Premium** Connector.
 2.   Enter your Confluent Cluster credentials, select **Service Account**, then choose **Existing Account**. From the drop-down menu, select the service account that was created for you by Terraform. The service account name should follow this format: `<prefix>-app-manager-<random_suffix>`.
 ![Oracle Connector Screenshot](./assets/lab1-oracle-connector1.png)
 
