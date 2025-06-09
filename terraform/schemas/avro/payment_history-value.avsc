@@ -1,0 +1,34 @@
+{
+    "type": "record",
+    "name": "PaymentHistory",
+    "fields": [
+        {
+            "name": "transaction_id",
+            "type": "string"
+        },
+        {
+            "name": "applicant_id",
+            "type": "string"
+        },
+        {
+            "name": "method",
+            "type": "string"
+        },
+        {
+            "name": "amount",
+            "type": "long"
+        },
+        {
+            "name": "status",
+            "type": "string"
+        },
+        {
+            "name": "failure_reason",
+            "type": "string"
+        },
+        {
+            "name": "payment_date",
+            "type": "string"
+        }
+    ] 
+}

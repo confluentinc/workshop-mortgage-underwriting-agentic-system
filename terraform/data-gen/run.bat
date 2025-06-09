@@ -1,0 +1,19 @@
+@echo off
+setlocal
+
+docker run ^
+       --rm ^
+       --env-file license.env ^
+       --net=host ^
+       -v %cd%/root.json:/home/root.json ^
+       -v %cd%/generators:/home/generators ^
+       -v %cd%/connections:/home/connections ^
+       shadowtraffic/shadowtraffic:1.0.8 ^
+       --config /home/root.json
+
+if %ERRORLEVEL% neq 0 (
+    echo Command failed with error code %ERRORLEVEL%
+    exit /b %ERRORLEVEL%
+)
+
+echo Command completed successfully

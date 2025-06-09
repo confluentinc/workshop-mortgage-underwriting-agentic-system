@@ -1,0 +1,8 @@
+{
+    "credit_score": {
+        "_gen": "uniformDistribution",
+        "bounds": [800, 850],
+        "decimals": 0
+    },
+    "public_records": 0
+}

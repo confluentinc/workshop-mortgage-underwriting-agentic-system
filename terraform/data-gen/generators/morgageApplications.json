@@ -1,0 +1,249 @@
+{
+    "connection": "mortgage-application-kafka",
+    "name": "morgageApplications",
+    "topic": "mortgage_applications",
+    "vars": {
+        "applicant": {
+            "_gen": "lookup",
+            "connection": "oracle",
+            "table": "applicant_credit_score",
+            "path": []
+        },
+        "applicant_id": {
+            "_gen": "weightedOneOf",
+            "choices": [
+                {
+                    "value": {
+                        "_gen": "var",
+                        "var": "applicant",
+                        "path": ["row", "applicant_id"]
+                    },
+                    "weight": 999
+                },
+                {
+                    "value": "-1",
+                    "weight": 1
+                }
+            ]
+        },
+        "property_value": {
+            "_gen": "uniformDistribution",
+            "bounds": [100000, 500000],
+            "decimals": 0
+        },
+        "loan_amount": {
+            "_gen": "uniformDistribution",
+            "bounds": [100000, 500000],
+            "clamp": [
+                0,
+                {
+                    "_gen": "math",
+                    "expr": "property_value * 0.75"
+                }
+            ],
+            "decimals": 0
+        }
+    },
+    "value": {
+        "application_id": {
+            "_gen": "sequentialString",
+            "startingFrom": 200000,
+            "expr": "APP-~d"
+        },
+        "customer_email": {
+            "_gen": "string",
+            "expr": "#{Internet.emailAddress}"
+        },
+        "customer_name": {
+            "_gen": "var",
+            "var": "applicant",
+            "path": ["row", "applicant_name"]
+        },
+        "applicant_id": {
+            "_gen": "var",
+            "var": "applicant_id"
+        },
+        "income": {
+            "_gen": "weightedOneOf",
+            "choices": [
+                {
+                    "weight": 9,
+                    "value": {
+                        "_gen": "uniformDistribution",
+                        "bounds": [
+                            {
+                                "_gen": "math",
+                                "expr": "loan_amount * 0.25"
+                            },
+                            {
+                                "_gen": "math",
+                                "expr": "(loan_amount * 0.25) * 12"
+                            }
+                        ],
+                        "decimals": 0
+                    }
+                },
+                {
+                    "weight": 1,
+                    "value": {
+                        "_gen": "uniformDistribution",
+                        "bounds": [
+                            {
+                                "_gen": "math",
+                                "expr": "(loan_amount * 0.25) / 8"
+                            },
+                            {
+                                "_gen": "math",
+                                "expr": "loan_amount * 0.25"
+                            }
+                        ],
+                        "decimals": 0
+                    }
+                }
+            ]
+        },
+        "loan_amount": {
+            "_gen": "var",
+            "var": "loan_amount"
+        },
+        "property_value": {
+            "_gen": "var",
+            "var": "property_value"
+        },
+        "property_address": {
+            "_gen": "string",
+            "expr": "#{Address.streetAddress}"
+        },
+        "property_state": {
+            "_gen": "weightedOneOf",
+            "choices": [
+                {
+                    "value": {
+                        "_gen": "string",
+                        "expr": "#{Address.state}"
+                    },
+                    "weight": 3
+                },
+                {
+                    "value": "California",
+                    "weight": 3
+                },
+                {
+                    "value": "New York",
+                    "weight": 2
+                },
+                {
+                    "value": "Texas",
+                    "weight": 2
+                },
+                {
+                    "value": "Florida",
+                    "weight": 1
+                }
+            ]
+        },
+        "payslips": {
+            "_gen": "weightedOneOf",
+            "choices": [
+                {
+                    "value":{
+                        "_gen": "string",
+                        "expr": "s3://riverbank-payslip-bucket/#{applicant_id}",
+                        "names": {
+                            "applicant_id": {
+                                 "_gen": "var",
+                                 "var": "applicant_id"
+                            }
+                        }
+                    },
+                    "weight": 1
+                },
+                {
+                    "value": "N/A",
+                    "weight": 10
+                }
+            ]
+        },
+        "employment_status": {
+            "_gen": "weightedOneOf",
+            "choices": [
+                {
+                    "value": "Full-employed",
+                    "weight": 4
+                },
+                {
+                    "value": "self-employed",
+                    "weight": 1
+                }
+            ]
+        },
+        "application_ts" : {
+            "_gen": "now"
+        }
+    },
+    "localConfigs" : {
+        "throttleMs": {
+            "_gen": "uniformDistribution",
+            "bounds": [10000, 15000]
+        },
+        "kafkaValueAvroSchemaHint": {
+            "type": "record",
+            "name": "MortgageApplication",
+            "fields": [
+                {
+                    "name": "application_id",
+                    "type": "string"
+                },
+                {
+                    "name": "customer_email",
+                    "type": "string"
+                },
+                {
+                    "name": "customer_name",
+                    "type": "string"
+                },
+                {
+                    "name": "applicant_id",
+                    "type": "string"
+                },
+                {
+                    "name": "income",
+                    "type": "long"
+                },
+                {
+                    "name": "loan_amount",
+                    "type": "long"
+                },
+                {
+                    "name": "property_value",
+                    "type": "long"
+                },
+                {
+                    "name": "property_address",
+                    "type": "string"
+                },
+                {
+                    "name": "property_state",
+                    "type": "string"
+                },
+                {
+                    "name": "payslips",
+                    "type": "string"
+                },
+                {
+                    "name": "employment_status",
+                    "type": "string"
+                },
+                {
+                    "name": "application_ts",
+                    "type": {
+                        "type" : "long",
+                        "flink.precision" : 3,
+                        "flink.version" : "1",
+                        "logicalType" : "timestamp-millis"
+                    }
+                }
+            ] 
+        }
+    }
+}

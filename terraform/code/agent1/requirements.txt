@@ -1,0 +1,5 @@
+confluent_kafka
+python-dotenv
+pymongo
+beautifulsoup4
+boto3

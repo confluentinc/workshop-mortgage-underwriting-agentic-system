@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>River Bank - Mortgage Application</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-image: url('https://images.unsplash.com/photo-1512917774080-9991f1c4c750?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+        .form-container {
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(5px);
+        }
+        .company-logo {
+            height: 60px;
+            width: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-2xl mx-auto form-container rounded-lg shadow-lg p-6">
+            <div class="flex items-center justify-center mb-6">
+                <img src="https://cdn-icons-png.flaticon.com/512/2784/2784487.png" alt="River Bank Logo" class="company-logo mr-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-indigo-800">River Bank</h1>
+                    <p class="text-sm text-gray-600 text-center">Your Trusted Financial Partner</p>
+                </div>
+            </div>
+            <h2 class="text-xl font-semibold text-center mb-6 text-gray-700">Mortgage Application</h2>
+            <form id="mortgageForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Full Name</label>
+                    <input type="text" name="name" required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Property Value ($)</label>
+                    <input type="number" name="property_value" required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Loan Amount ($)</label>
+                    <input type="number" name="loan_amount" required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Annual Income ($)</label>
+                    <input type="number" name="annual_income" required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                </div>
+                <div class="pt-4">
+                    <button type="submit"
+                        class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                        Submit Application
+                    </button>
+                </div>
+            </form>
+            <div id="message" class="mt-4 text-center hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('mortgageForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            
+            try {
+                const response = await fetch('/submit_application', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                const messageDiv = document.getElementById('message');
+                messageDiv.classList.remove('hidden');
+                
+                if (response.ok) {
+                    messageDiv.textContent = 'Application submitted successfully!';
+                    messageDiv.className = 'mt-4 text-center text-green-600';
+                    e.target.reset();
+                } else {
+                    messageDiv.textContent = `Error: ${result.error}`;
+                    messageDiv.className = 'mt-4 text-center text-red-600';
+                }
+            } catch (error) {
+                const messageDiv = document.getElementById('message');
+                messageDiv.classList.remove('hidden');
+                messageDiv.textContent = 'An error occurred while submitting the application.';
+                messageDiv.className = 'mt-4 text-center text-red-600';
+            }
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,209 @@
+{
+    "generators": [
+        {
+            "name": "sampleHighCreditScoreApplicant",
+            "connection": "oracle",
+            "table": "applicant_credit_score",
+            "row": {
+                "applicant_id": {
+                    "_gen": "string",
+                    "expr": "C-100000"
+                },
+                "applicant_name": {
+                    "_gen": "string",
+                    "expr": "John Doe"
+                },
+                "open_credit_accounts": {
+                    "_gen": "uniformDistribution",
+                    "bounds": [0, 5],
+                    "decimals": 0
+                },
+                "total_credit_limit": {
+                    "_gen": "uniformDistribution",
+                    "bounds": [1000, 50000],
+                    "decimals": 0
+                },
+                "credit_utilization": {
+                    "_gen": "uniformDistribution",
+                    "bounds": [0, 20],
+                    "decimals": 1
+                },
+                "credit_score": {
+                    "_gen": "uniformDistribution",
+                    "bounds": [800, 850],
+                    "decimals": 0
+                },
+                "public_records": 0
+            }
+        },
+        {
+            "name": "sampleLowCreditScoreApplicant",
+            "connection": "oracle",
+            "table": "applicant_credit_score",
+            "row": {
+                "applicant_id": {
+                    "_gen": "string",
+                    "expr": "C-200000"
+                },
+                "applicant_name": {
+                    "_gen": "string",
+                    "expr": "Omar Soli"
+                },
+                "open_credit_accounts": {
+                    "_gen": "uniformDistribution",
+                    "bounds": [0, 5],
+                    "decimals": 0
+                },
+                "total_credit_limit": {
+                    "_gen": "uniformDistribution",
+                    "bounds": [1000, 50000],
+                    "decimals": 0
+                },
+                "credit_utilization": {
+                    "_gen": "uniformDistribution",
+                    "bounds": [90, 100],
+                    "decimals": 1
+                },
+                "credit_score": {
+                    "_gen": "uniformDistribution",
+                    "bounds": [300, 350],
+                    "decimals": 0
+                },
+                "public_records": 5
+            }
+        },
+        {
+            "name": "highCreditScores",
+            "connection": "oracle",
+            "table": "applicant_credit_score",
+            "row": {
+                "_gen": "loadJsonFile",
+                "files": [
+                    "/home/generators/creditScoreBase.json",
+                    "/home/generators/highCreditScore.json"
+                ]
+            }
+        },
+        {
+            "name": "mediumCreditScores",
+            "connection": "oracle",
+            "table": "applicant_credit_score",
+            "row": {
+                "_gen": "loadJsonFile",
+                "files": [
+                    "/home/generators/creditScoreBase.json",
+                    "/home/generators/mediumCreditScore.json"
+                ]
+            }
+        },
+        {
+            "name": "lowCreditScores",
+            "connection": "oracle",
+            "table": "applicant_credit_score",
+            "row": {
+                "_gen": "loadJsonFile",
+                "files": [
+                    "/home/generators/creditScoreBase.json",
+                    "/home/generators/lowCreditScore.json"
+                ]
+            }
+        },
+        {
+            "_gen": "loadJsonFile",
+            "file": "/home/generators/morgageApplications.json"
+        },
+        {
+            "_gen": "loadJsonFile",
+            "file": "/home/generators/paymentHistories.json"
+        }
+    ],
+    "schedule": {
+        "stages": [
+            {
+                "generators": [
+                    "highCreditScores", "mediumCreditScores", "lowCreditScores", "sampleHighCreditScoreApplicant", "sampleLowCreditScoreApplicant"
+                ],
+                "overrides": {
+                    "highCreditScores": {
+                        "localConfigs": {
+                            "maxEvents": 100
+                        }
+                    },
+                    "mediumCreditScores": {
+                        "localConfigs": {
+                            "maxEvents": 500
+                        }
+                    },
+                    "lowCreditScores": {
+                        "localConfigs": {
+                            "maxEvents": 100
+                        }
+                    },
+                    "sampleHighCreditScoreApplicant": {
+                        "localConfigs": {
+                            "maxEvents": 1
+                        }
+                    },
+                    "sampleLowCreditScoreApplicant": {
+                        "localConfigs": {
+                            "maxEvents": 1
+                        }
+                    }
+                }
+            },
+            {
+                "generators": [
+                    "paymentHistories"
+                ],
+                "overrides": {
+                    "paymentHistories": {
+                        "localConfigs": {
+                            "maxEvents": 700
+                        }
+                    }
+                }
+            },
+            {
+                "generators": [
+                    "morgageApplications",
+                    "paymentHistories"
+                ],
+                "overrides": {
+                    "paymentHistories": {
+                        "vars": {
+                            "time_offset": 0
+                        },  
+                        "localConfigs":   {
+                            "throttleMs": {
+                                "_gen": "uniformDistribution",
+                                "bounds": [80000, 85000]
+                            }
+                        }
+                    },
+                    "morgageApplications": {
+                        "localConfigs": {
+                            "throttleMs": {
+                                "_gen": "uniformDistribution",
+                                "bounds": [90000, 95000]
+                            }
+                        }
+                    }
+                }              
+            }
+        ]
+    },
+    "connections": {
+        "oracle": {
+            "_gen": "loadJsonFile",
+            "file": "/home/connections/oracle.json"
+        },
+        "mortgage-application-kafka": {
+            "_gen": "loadJsonFile",
+            "file": "/home/connections/mortgage-application-kafka.json"
+        },
+        "payments-kafka": {
+            "_gen": "loadJsonFile",
+            "file": "/home/connections/payments-kafka.json"
+        }
+    }
+}
