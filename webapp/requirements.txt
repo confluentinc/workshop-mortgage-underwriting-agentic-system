@@ -1,4 +1,4 @@
-Flask==2.2.5
+Flask==3.1.1
 Werkzeug==2.0.3
 confluent-kafka==2.0.2
 python-dotenv==0.19.0
