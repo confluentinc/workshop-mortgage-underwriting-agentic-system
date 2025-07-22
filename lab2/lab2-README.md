@@ -159,11 +159,12 @@ We will use the built-in [`ml_predict()`](https://docs.confluent.io/cloud/curren
    ```sql
    CREATE MODEL loan_eligibility_model
    INPUT(message STRING)
-   OUTPUT(response STRING)
+   OUTPUT(application_id STRING, decision STRING, final_interest_rate FLOAT, explanation STRING)
    COMMENT 'Analyze risk assessment and determine loan eligibility'
    WITH (
    'provider' = 'bedrock',
    'task' = 'text_generation',
+   'bedrock.output_format'='json:/content/0/text',
    'bedrock.connection'='bedrock-claude-connection',
    'bedrock.PARAMS.max_tokens' = '20000',
    'bedrock.system_prompt' = 'You’re a Credit and Fraud Risk Analyst at River Banking, a leading financial institution specializing in personalized mortgage solutions. River Banking is committed to responsible lending and fraud prevention through advanced risk analysis and data-driven decision-making.
@@ -182,18 +183,17 @@ We will use the built-in [`ml_predict()`](https://docs.confluent.io/cloud/curren
    ```sql
    SET 'client.statement-name' = 'mortgage_decisions-materializer';
    CREATE TABLE mortgage_decisions AS
-   SELECT
-   CAST(JSON_VALUE(loan_eligibility.response, '$.application_id') AS BYTES) AS `key`,
-   JSON_VALUE(loan_eligibility.response, '$.application_id') AS application_id,
-   JSON_VALUE(loan_eligibility.response, '$.applicant_id') AS applicant_id,
-   JSON_VALUE(loan_eligibility.response, '$.borrower_name') AS borrower_name,
-   JSON_VALUE(loan_eligibility.response, '$.property_state') AS property_state,
-   CAST(JSON_VALUE(loan_eligibility.response, '$.loan_amount') AS INTEGER) AS loan_amount,
-   JSON_VALUE(loan_eligibility.response, '$.decision') AS decision,
-   CAST(JSON_VALUE(loan_eligibility.response, '$.final_interest_rate') AS DOUBLE) AS final_interest_rate,
-   JSON_VALUE(loan_eligibility.response, '$.explanation') AS explanation,
+   SELECT 
+   m.application_id,
+   applicant_id,
+   borrower_name,
+   property_state,
+   loan_amount,
+   decision,
+   final_interest_rate,
+   explanation,
    application_ts AS `timestamp`
-   FROM mortgage_validated_apps
+   FROM mortgage_validated_apps m
    CROSS JOIN LATERAL TABLE(
    ml_predict(
       'loan_eligibility_model',
@@ -210,7 +210,7 @@ We will use the built-in [`ml_predict()`](https://docs.confluent.io/cloud/curren
          '- Return a clear decision on mortgage eligibility and recommend a fair, risk-adjusted interest rate.\n',
          '- Provide a concise explanation of the final decision to support downstream underwriting automation.\n\n',
          'Applicant’s Financial and Risk Profile:\n',
-         'Application ID:', application_id, '\n',
+         'Application ID:', m.application_id, '\n',
          'Applicant ID:', applicant_id, '\n',
          'Email:', customer_email, '\n',
          'Borrower Name:', borrower_name, '\n',
@@ -231,12 +231,8 @@ We will use the built-in [`ml_predict()`](https://docs.confluent.io/cloud/curren
          'Respond ONLY with a raw JSON object like this:\n',
          '{\n'
          '"application_id": (string) Unique ID for the application\n',
-         '"applicant_id": (string) Unique ID for the applicant\n',
-         '"borrower_name": (string) Name for the applicant\n',
-         '"property_state": (string) State for the property\n',
-         '"loan_amount": (integer) The requested loan amount\n',
          '"decision": (enum) Either "Approved", "Rejected", or "Pending"\n',
-         '"final_interest_rate": (float) The suggested interest rate for the applicant if the application "decision" is Approved only do not provide interest rate if the application "decision" is "Pending" or "Rejected" do not suggest interest rate.  \n',
+         '"final_interest_rate": (float) The suggested interest rate for the applicant if the application "decision" is Approved. If the application "decision" is "Pending" or "Rejected" suggest 0.0 interest rate.  \n',
          '"explanation": (string) A brief narrative explaining the decision and interest rate logic\n',
          '}',
          'Provide only the JSON.\n\n',
