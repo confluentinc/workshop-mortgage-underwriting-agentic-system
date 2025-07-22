@@ -164,7 +164,7 @@ Once the infrastructure is deployed, we can generate mortgage data. We'll use **
 
    **If you already have a license key, you can skip this step.**
 
-   > ⚠️ **Note**: If you're running the workshop before July 1, 2025, skip this step and use the `licence.env` file included in this repository.
+   > ⚠️ **Note**: If you're running the workshop before August 21, 2025, skip this step and use the `licence.env` file included in this repository.
    
    - Inside the `data-gen` directory, create a file named `license.env` and add your license variables.
 
