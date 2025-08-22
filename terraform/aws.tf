@@ -161,7 +161,7 @@ resource "aws_instance" "oracle_instance" {
     volume_size = 30  # Oracle XE needs at least 12GB, adding extra space
     volume_type = "gp3"
   }
-  user_data = base64encode(<<-EOF
+  user_data_base64 = base64encode(<<-EOF
     #!/bin/bash
     # Update system
     dnf update -y

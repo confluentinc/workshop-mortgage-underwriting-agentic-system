@@ -164,6 +164,7 @@ We will use the built-in [`ml_predict()`](https://docs.confluent.io/cloud/curren
    WITH (
    'provider' = 'bedrock',
    'task' = 'text_generation',
+   'bedrock.ENABLE_JSON_DEEP_PARSING'='true',
    'bedrock.output_format'='json:/content/0/text',
    'bedrock.connection'='bedrock-claude-connection',
    'bedrock.PARAMS.max_tokens' = '20000',
@@ -181,7 +182,7 @@ We will use the built-in [`ml_predict()`](https://docs.confluent.io/cloud/curren
 
 
    ```sql
-   SET 'client.statement-name' = 'mortgage_decisions-materializer';
+   SET 'client.statement-name' = 'mortgage-decisions-materializer';
    CREATE TABLE mortgage_decisions AS
    SELECT 
    m.application_id,
