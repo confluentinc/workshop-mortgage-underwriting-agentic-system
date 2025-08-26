@@ -3,7 +3,7 @@ setlocal
 
 docker run ^
        --rm ^
-       --env-file license.env ^
+       --env-file free-trial-license-docker.env ^
        --net=host ^
        -v %cd%/root.json:/home/root.json ^
        -v %cd%/generators:/home/generators ^

@@ -160,24 +160,10 @@ Once the infrastructure is deployed, we can generate mortgage data. We'll use **
    ```
    cd terraform/data-gen
    ```
-3. Get a ShadowTraffic License Key. [Sign up for ShadowTraffic](https://shadowtraffic.io/pricing.html) to obtain a license key.
-
-   **If you already have a license key, you can skip this step.**
-
-   > ⚠️ **Note**: If you're running the workshop before August 21, 2025, skip this step and use the `licence.env` file included in this repository.
-   
-   - Inside the `data-gen` directory, create a file named `license.env` and add your license variables.
-
-
-      The file should look like this:
-      ```
-      LICENSE_ID=e2c218c6-00ef-41d3-8c93-7debea33266e
-      LICENSE_EMAIL=<your_email>
-      LICENSE_ORGANIZATION=<your_company>
-      LICENSE_EDITION=ShadowTraffic Free Trial
-      LICENSE_EXPIRATION=<date>
-      LICENSE_SIGNATURE=rbnDYGuNaxk7j5HwdsNzJz4dDROlLX3Haf5tjBOwCJv7Y5rNg6D0TcJQA/gODKiQhY5f1rg9g1pPDiSuZUFfY9lUZGGx99HquZAAENDotezebIY1ILf8DVDSq9hchvYyceuL1irNgynpaSvfh+EeakeGQBbm6FtihWEJmhUMjQoJVMyckV9z9OVMhluWI3PAKLI8ryelOc3QsZiKoIwlledY5fYzvUZwOBG+GpLOps15xgTJGFVDTy206xXzPdCGMh5DTwh7hXYyHfcZepiV2DGqEk+MPGQGxuKvGuiOnE/FhPjdj2BUJWyEswo6MPpgsyl4FVcLj/lfgWAi+Gt/Pg==
-      ```
+3. Download a ShadowTraffic free trail license key.
+   ```
+   curl -O https://raw.githubusercontent.com/ShadowTraffic/shadowtraffic-examples/master/free-trial-license-docker.env
+   ```
 4. Run ShadowTraffic
 
    > ⚠️ **Note:** If you're using **AWS Workshop Studio**, start data generation **immediately before beginning the workshop** and try to **avoid taking long breaks**.  
