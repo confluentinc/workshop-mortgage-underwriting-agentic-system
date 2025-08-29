@@ -4,7 +4,7 @@ set -e
 
 docker run \
        --rm \
-       --env-file license.env \
+       --env-file free-trial-license-docker.env \
        --net=host \
        -v $(pwd)/root.json:/home/root.json \
        -v $(pwd)/generators:/home/generators \
