@@ -4,51 +4,11 @@
 In this lab, we will use AI agents powered by a **Claude model running on Amazon Bedrock** to process real-time, contextualized mortgage applications. We'll build three AI agents, each responsible for a different stage of the mortgage decision workflow:
 
 - **Agent 1:** Runs on AWS Lambda and performs fraud detection and credit risk assessment.
-- **Agent 2:** Runs on Flink SQL and makes the actual mortgage decision, including interest rate recommendation.
-- **Agent 3:** Also runs on Flink SQL and, based on Agent 2’s decision, generates either a mortgage offer or a rejection letter.
+- **Agent 2:** Runs on Flink SQL and makes the actual mortgage decision, including interest rate recommendation. It also generates acceptance/rejection letters based on the decision.
 
 By the end of this lab, the entire mortgage application process will be fully automated using intelligent, Bedrock-powered agents.
 
 ![Architecture](./assets/HLD.png)
-
-## Prerequisites
-
-Before starting this lab, make sure you have completed [**Lab 1 – Connecting and Pre-processing Mortgage Applications**](../lab1/lab1-README.md).
-
-## 🔓 Enabling Claude Sonnet 3.7 on Your AWS Account
-
-To enable **Claude 3.7 Sonnet** in your AWS account via Amazon Bedrock:
-
-1. Open the [Amazon Bedrock Console](https://console.aws.amazon.com/bedrock/home?/overview), make sure you are in the same region.
-2. In the left sidebar, under **Bedrock configuration**, click **Model access**.
-3. Locate **Claude 3.7 Sonnet** in the list of available models.
-4. Click **Available to request**, then select **Request model access**.
-5. In the request wizard, click **Next** and follow the prompts to complete the request.
-
-![Model Access in Bedrock Console](./assets/lab2-bedrock1.png)
-
-⏱️ *Provisioning may take 5–10 minutes.*
-
-Once enabled, you’ll need to retrieve the **model ID** for use in your applications.
-
-3. In the Bedrock UI, navigate to **Anthropic**, then select the **Claude Sonnet 3.7** model.
-
-   - In the **Details** section, locate the **Model ID**.
-   - Copy this value — you’ll need it later. The Model ID should look something like:
-      ```
-      anthropic.claude-3-7-sonnet-20250219-v1:0
-      ```
-4. We’ll use this model ID to construct the endpoint for invoking the model.
-
-   > **Note:** Prefix the `<model_id>` with `us.` for US-based regions or `eu.` for EU-based regions.  
-   > Omitting the region prefix will prevent successful model invocation.
-   
-   Example (us-east-1):
-      ```
-      https://bedrock-runtime.us-east-1.amazonaws.com/model/us.anthropic.claude-3-7-sonnet-20250219-v1:0/invoke
-      ```
-
-We will use this endpoint later in the lab.
 
 ## **Agent 1: Fraud and Credit Risk Assesment**
 
@@ -99,148 +59,173 @@ This agent runs on AWS Lambda, so we will use the fully managed Lambda Sink Conn
 > **Important:** The provided Lambda function does **not** include a retry mechanism, so throttled requests may be lost during the workshop. In a production environment, you should implement a robust retry strategy to handle such cases gracefully.
 
 
- ## **Agent 2: Mortgage Desicion**
+ ## **Agent 2: Combined Mortgage Decision and Letter**
 
-This agent runs on **Confluent Cloud for Apache Flink**, where ML models are treated as first-class citizens. You can register a model once and use it seamlessly within Flink SQL queries.
+This agent runs on **Confluent Cloud Streaming Agents**, where ML models are treated as first-class citizens. You can register a model once and use it seamlessly within Flink SQL queries.
 
-First, we will register the model in the **Confluent Catalog**, then consume the output of Agent 1 as input for Agent 2.  
-We will use the built-in [`ml_predict()`](https://docs.confluent.io/cloud/current/flink/reference/functions/model-inference-functions.html#ml-predict) function to invoke the model hosted on **Amazon Bedrock**.
+These agents leverage tool calling to interact directly with external systems or APIs, enabling closed-loop automation — all running natively within Confluent Cloud for Apache Flink.
 
 ![Architecture](./assets/lab2-agent2-hld.png)
 
-1. In your terminal, install `confluent-cli` by following these [instructions](https://docs.confluent.io/confluent-cli/current/install.html).
-2. Configure `confluent-cli`:
-   ```
-   confluent login --save
-   ```
-   - Enter email and password
 
-3. Configure AWS Environment variables if you are using a new terminal.
+1. Create the Tools to be used by the agent. See [CREATE TOOL documentation](https://docs.confluent.io/cloud/current/flink/reference/statements/create-tool.html).
 
-   If you're using **AWS Workshop Studio**, click on **Get AWS CLI Credentials** to retrieve the necessary access key, secret key, and region. Then, run the following command to configure the CLI:
-   <details>
-   <summary>Click to expand for MAC</summary>
-
-   ```
-   export AWS_DEFAULT_REGION="<cloud_region>"
-   export AWS_ACCESS_KEY_ID="<AWS_API_KEY>"
-   export AWS_SECRET_ACCESS_KEY="<AWS_SECRET>"
-   export AWS_SESSION_TOKEN="<AWS_SESSION_TOKEN>"
-   ```
-
-   </details>
-
-   <details>
-   <summary>Click to expand for Windows CMD</summary>
-
-   ```
-   set AWS_DEFAULT_REGION="<cloud_region>"
-   set AWS_ACCESS_KEY_ID="<AWS_API_KEY>"
-   set AWS_SECRET_ACCESS_KEY="<AWS_SECRET>"
-   set AWS_SESSION_TOKEN="<AWS_SESSION_TOKEN>"
-   ```
-   </details>
-
-4. Run the following command to create a connection resource named `bedrock-claude-connection` that uses your AWS credentials.
-
-   ```
-   confluent flink connection create bedrock-claude-connection \
-   --cloud AWS \
-   --region <CLOUD_REGION> \
-   --environment <CONFLUENT_ENV_ID> \
-   --type bedrock \
-   --endpoint https://bedrock-runtime.<CLOUD_REGION>.amazonaws.com/model/us.anthropic.claude-3-7-sonnet-20250219-v1:0/invoke \
-   --aws-access-key $AWS_ACCESS_KEY_ID \
-   --aws-secret-key $AWS_SECRET_ACCESS_KEY \
-   --aws-session-token $AWS_SESSION_TOKEN
-   ```
-
-5. In Flink workspace, create the model
    ```sql
-   CREATE MODEL loan_eligibility_model
-   INPUT(message STRING)
-   OUTPUT(application_id STRING, decision STRING, final_interest_rate FLOAT, explanation STRING)
-   COMMENT 'Analyze risk assessment and determine loan eligibility'
+   CREATE TOOL zapier
+   USING CONNECTION `zapier-mcp-connection`
    WITH (
-   'provider' = 'bedrock',
-   'task' = 'text_generation',
-   'bedrock.ENABLE_JSON_DEEP_PARSING'='true',
-   'bedrock.output_format'='json:/content/0/text',
-   'bedrock.connection'='bedrock-claude-connection',
-   'bedrock.PARAMS.max_tokens' = '20000',
-   'bedrock.system_prompt' = 'You’re a Credit and Fraud Risk Analyst at River Banking, a leading financial institution specializing in personalized mortgage solutions. River Banking is committed to responsible lending and fraud prevention through advanced risk analysis and data-driven decision-making.
-   Your role is to assess a mortgage applicant’s financial and risk profile to determine loan eligibility and recommend an appropriate interest rate. You will analyze key indicators such as verified income, credit score, and fraud score. Based on these inputs, you will evaluate the applicant’s ability to repay the loan, identify any potential red flags, and assign a risk category that will inform underwriting decisions.
-   All responses should be formatted as JSON and JSON only according to the output format guidance.'
+   'type' = 'mcp',
+   'allowed_tools' = 'gmail_send_email',
+   'request_timeout' = '30'
    );
    ```
 
-6. Start Agent 2
-
-> ⚠️ **Note:** If you're using **AWS Workshop Studio**, be aware that **Bedrock service limits are reduced** for security reasons. As a result, some requests may be throttled.  
->  
-> **Important:** The Flink job may fail if the message backlog exceeds **6 messages**, due to the current **Bedrock limit of 6 requests per minute** in AWS Workshop Studio.
-
+2. Create the `mortgage_decisions_agent` and bind the tools to it. See [CREATE AGENT documentation](https://docs.confluent.io/cloud/current/flink/reference/statements/create-agent.html#flink-sql-create-agent).
 
    ```sql
-   SET 'client.statement-name' = 'mortgage-decisions-materializer';
+   CREATE AGENT mortgage_decisions_agent
+   USING MODEL llm_textgen_model
+   USING PROMPT 'You’re a Credit and Fraud Risk Analyst at River Banking, a leading financial institution specializing in personalized mortgage solutions. River Banking is committed to responsible lending and fraud prevention through advanced risk analysis and data-driven decision-making.
+
+   Your role is to assess a mortgage applicant’s financial and risk profile to determine loan eligibility and recommend an appropriate interest rate. You will analyze key indicators such as verified income, credit score, and fraud score. Based on these inputs, you will evaluate the applicant’s ability to repay the loan, identify any potential red flags, and assign a risk category that will inform underwriting decisions.'
+   USING TOOLS zapier
+   COMMENT 'Consolidated agent for making mortgage desisions and generating mortgage offers or rejection letters'
+   WITH (
+   'max_consecutive_failures' = '2',
+   'MAX_ITERATIONS' = '10'
+   );
+   ```
+
+6. **In the query below, replace <\<YOUR_EMAIL_ADDRESS_HERE\>> with your email** and then start Agent 2.
+
+   > ⚠️ **Note:** If you're using **AWS Workshop Studio**, be aware that **Bedrock service limits are reduced** for security reasons. As a result, some requests may be throttled.  
+   >  
+   > **Important:** The Flink job may fail if the message backlog exceeds **6 messages**, due to the current **Bedrock limit of 6 requests per minute** in AWS Workshop Studio.
+
+   ```sql
+   SET 'client.statement-name' = 'mortgage-decisions-agent';
    CREATE TABLE mortgage_decisions AS
+
    SELECT 
-   m.application_id,
-   applicant_id,
-   borrower_name,
-   property_state,
-   loan_amount,
-   decision,
-   final_interest_rate,
-   explanation,
-   application_ts AS `timestamp`
-   FROM mortgage_validated_apps m
-   CROSS JOIN LATERAL TABLE(
-   ml_predict(
-      'loan_eligibility_model',
+      m.application_id,
+      m.applicant_id,
+      m.borrower_name,
+      m.property_state,
+      m.loan_amount,
+      JSON_VALUE(agent_result.response, '$.final_interest_rate') AS final_interest_rate,
+      JSON_VALUE(agent_result.response, '$.decision') AS decision,
+      JSON_VALUE(agent_result.response, '$.explanation') AS explanation,
+      JSON_VALUE(agent_result.response, '$.letter_body') AS letter_body,
+      m.application_ts AS `timestamp`
+   FROM mortgage_validated_apps m,
+   LATERAL TABLE(
+      AI_RUN_AGENT(
+      'mortgage_decisions_agent',
       CONCAT(
-         'Using the applicant’s full financial profile and computed risk indicators, generate a Loan Eligibility ','and Interest Rate Recommendation that determines whether the applicant qualifies for a mortgage and, ',
-         'if so, at what interest rate. This decision supports River Banking’s commitment to responsible, ',
-         'personalized mortgage lending.\n\n',
-         'Key Responsibilities:\n',
-         '- Assess income, loan amount, debt-to-income ratio, and employment status to evaluate repayment capacity.\n',
-         '- Analyze the applicant’s credit score and credit utilization to determine creditworthiness.\n',
-         '- Lower credit scores should yield a higher interest rate while high credit scores yield a lower interest rate.\n',
-         '- Incorporate risk signals such as fraud_risk_score, loan_stack_risk, and risk_category to flag high-risk profiles.\n',
-         '- Use agent_reasoning to interpret key patterns in the applicant’s financial and risk background.\n',
-         '- Return a clear decision on mortgage eligibility and recommend a fair, risk-adjusted interest rate.\n',
-         '- Provide a concise explanation of the final decision to support downstream underwriting automation.\n\n',
-         'Applicant’s Financial and Risk Profile:\n',
-         'Application ID:', m.application_id, '\n',
-         'Applicant ID:', applicant_id, '\n',
-         'Email:', customer_email, '\n',
-         'Borrower Name:', borrower_name, '\n',
-         'Income:', CAST(income AS STRING), '\n',
-         'Loan Amount:', CAST(loan_amount AS STRING), '\n',
-         'Property Address:', property_address, '\n',
-         'Property State:', property_state, '\n',
-         'Property Value:', CAST(property_value AS STRING), '\n',
-         'Employment Status:', employment_status, '\n',
-         'Credit Score:', CAST(credit_score AS STRING), '\n',
-         'Credit Utilization:', CAST(credit_utilization AS STRING), '\n',
-         'Debt to Income Ratio:', CAST(debt_to_income_ratio AS STRING), '\n',
-         'Fraud Risk Score:', CAST(fraud_risk_score AS STRING), '\n',
-         'Loan Stack Risk:', loan_stack_risk, '\n',
-         'Risk Category:', risk_category, '\n',
-         'Agent Reasoning:', agent_reasoning, '\n\n',
-         'You are an API that responds with JSON only. Do not include explanations, headers, or markdown formatting.\n\n',
-         'Respond ONLY with a raw JSON object like this:\n',
-         '{\n'
-         '"application_id": (string) Unique ID for the application\n',
-         '"decision": (enum) Either "Approved", "Rejected", or "Pending"\n',
-         '"final_interest_rate": (float) The suggested interest rate for the applicant if the application "decision" is Approved. If the application "decision" is "Pending" or "Rejected" suggest 0.0 interest rate.  \n',
-         '"explanation": (string) A brief narrative explaining the decision and interest rate logic\n',
-         '}',
-         'Provide only the JSON.\n\n',
-         'Failure to strictly follow the output format will result in incorrect output.'
+         '# ROLE\n',
+         'You are the Mortgage Underwriting and Communications Agent at River Banking. You evaluate mortgage applications, ',
+         'determine eligibility, recommend risk-adjusted interest rates, and generate customer communications.\n\n',
+         
+         '# OBJECTIVE\n',
+         'Analyze the applicant financial profile and risk indicators to produce:\n',
+         '1. Eligibility decision (Approved or Rejected)\n',
+         '2. Risk-adjusted interest rate recommendation\n',
+         '3. Clear explanation of the decision\n',
+         '4. Professional communication letter\n\n',
+         
+         '# DECISION CRITERIA\n\n',
+         
+         '## Credit Assessment\n',
+         '- HIGH credit: Score > 750 → Lower interest rates (base rate + 0-1%)\n',
+         '- MEDIUM credit: Score 500-750 → Moderate rates (base rate + 1-3%)\n',
+         '- LOW credit: Score < 500 → Higher rates or rejection (base rate + 3-5%)\n\n',
+         
+         '## Financial Capacity\n',
+         '- Debt-to-Income Ratio: Acceptable range is 1-600%. Ratios > 600% require strong compensating factors.\n',
+         
+         '## Risk Factors\n',
+         '- fraud_risk_score: Scores > 0.7 require additional scrutiny or rejection.\n',
+         '- loan_stack_risk: HIGH risk may lead to rejection or rate adjustment.\n',
+         '- risk_category: Consider overall risk profile in final decision.\n\n',
+         
+         '## Decision Rules\n',
+         '- Output ONLY "Approved" or "Rejected" (no Pending status).\n',
+         '- For Rejected applications: Set final_interest_rate to -1.0\n',
+         '- Base interest rate assumption: 6.5% (adjust based on risk profile)\n\n',
+         
+         '# APPLICANT DATA\n',
+         '```\n',
+         'Application ID: ', m.application_id, '\n',
+         'Applicant ID: ', m.applicant_id, '\n',
+         'Borrower Name: ', m.borrower_name, '\n',
+         'Property: ', m.property_address, ', ', m.property_state, '\n',
+         'Property Value: $', CAST(m.property_value AS STRING), '\n',
+         'Loan Amount: $', CAST(m.loan_amount AS STRING), '\n',
+         'Annual Income: $', CAST(m.income AS STRING), '\n',
+         'Employment: ', m.employment_status, '\n',
+         'Credit Score: ', CAST(m.credit_score AS STRING), '\n',
+         'Credit Utilization: ', CAST(m.credit_utilization AS STRING), '%\n',
+         'Debt-to-Income: ', CAST(m.debt_to_income_ratio AS STRING), '%\n',
+         'Fraud Risk Score: ', CAST(m.fraud_risk_score AS STRING), '\n',
+         'Loan Stack Risk: ', m.loan_stack_risk, '\n',
+         'Risk Category: ', m.risk_category, '\n',
+         'Risk Assessment: ', m.agent_reasoning, '\n',
+         '```\n\n',
+         
+         '# OUTPUT FORMAT - CRITICAL\n',
+         'You MUST return ONLY a valid JSON object. NO preamble, NO explanation, NO markdown code blocks.\n',
+         'Start your response with { and end with }\n',
+         'Do NOT wrap the JSON in ```json or ``` markers.\n\n',
+         
+         '## JSON Schema (STRICT)\n',
+         'Return ONLY a valid JSON object with exactly these fields:\n',
+         '{\n',
+         '  "decision": "Approved" | "Rejected",\n',
+         '  "final_interest_rate": "<string>",\n',
+         '  "explanation": "<string>",\n',
+         '  "letter_body": "<string>"\n',
+         '}\n',
+         
+         '## Field Requirements\n',
+         '- decision: Must be exactly "Approved" or "Rejected"\n',
+         '- final_interest_rate: Must be a STRING (e.g., "7.5" not 7.5). Use "-1.0" for rejected applications\n',
+         '- explanation: Single string with brief reasoning\n',
+         '- letter_body: Single string containing the complete letter (see template below)\n\n',
+         
+         '## Letter Body Template\n',
+         'Generate letter_body as plain text following this EXACT structure.\n',
+         'Use \\n\\n for paragraph breaks. NO bullet points. Write in complete sentences.\n\n',
+         
+         'Dear ', m.borrower_name, ',\\n\\n',
+         'Thank you for submitting your mortgage application (ID: ', m.application_id, ') for the property located at ', m.property_address, ', ', m.property_state, '.\\n\\n',
+         
+         '[IF APPROVED]\\n',
+         'We are pleased to inform you that your application has been approved. We are offering you a mortgage with an interest rate of [INSERT RATE]% APR for a loan amount of $[INSERT LOAN AMOUNT]. This rate reflects [INSERT BRIEF EXPLANATION OF RATE FACTORS].\\n\\n',
+         'Your next steps are as follows: First, review and sign your loan agreement within 10 business days. Second, schedule your property appraisal with our team. Third, submit any remaining documentation requested. For questions or assistance, please contact us at 1-800-RIVER-BANKING or mortgages@riverbanking.com.\\n\\n',
+         
+         '[IF REJECTED]\\n',
+         'After careful review of your application, we are unable to approve your mortgage at this time. [INSERT CLEAR EXPLANATION OF REJECTION REASONS].\\n\\n',
+         'Your next steps are as follows: First, review the factors that affected this decision. Second, consider taking steps to address these concerns before reapplying. Third, contact us at 1-800-RIVER-BANKING for personalized guidance on strengthening your application.\\n\\n',
+         
+         'Best regards,\\n',
+         'River Banking Mortgage Team\\n',
+         'Phone: 1-800-RIVER-BANKING\\n',
+         'Email: mortgages@riverbanking.com\n\n',
+         
+         '---\n\n',
+         
+         '# EMAIL AUTOMATION\n',
+         'After generating the JSON output, call the gmail_send_email tool with:\n',
+         '- To: <<YOUR_EMAIL_ADDRESS_HERE>>\n',
+         '- Subject: Mortgage Decision - Application ', m.application_id, ' - ', m.borrower_name, '\n',
+         '- Body: Use the exact letter_body value from your JSON output\n\n',
+         
+         'REMEMBER: Output ONLY the JSON object. Do NOT include email fields in the JSON. Do NOT add any text before or after the JSON.'
+      ),
+         m.application_id,
+         MAP['debug', 'true']
       )
-   )
-   ) AS loan_eligibility;
+   ) AS agent_result(status, response);
    ```
 
    > **Note:** This query should run continuously and **must not be stopped or deleted**.  
@@ -259,105 +244,7 @@ We will use the built-in [`ml_predict()`](https://docs.confluent.io/cloud/curren
    SELECT * FROM mortgage_decisions WHERE borrower_name = 'John Doe';
    ```
 
-We now have mortgage decisions and are ready to generate offers and rejection letters.
-
- ## **Agent 3: Mortgage Offer/Rejection Letter**
-
- Now that we have Mortgage decisions, Agent 3 will either generate an offer or a rejection letter based on this decisisn. 
-
- Again this model runs on Confluent Cloud for Apache Flink. We will first create the model and then take the output of agent 2 as the input for agent 3. This time we do not need to create a connection as it is already created. 
-
-![Architecture](./assets/lab2-agent3-hld.png)
-
-
-1. In Flink workspace, create the model
-
-   ```sql
-   CREATE MODEL mortgage_decision_model
-   INPUT(message STRING)
-   OUTPUT(response STRING)
-   COMMENT 'Based on the mortgage decision, generates an approval or rejection letter for the client.'
-   WITH (
-   'provider' = 'bedrock',
-   'task' = 'text_generation',
-   'bedrock.PARAMS.max_tokens' = '20000',
-   'bedrock.connection'='bedrock-claude-connection',
-   'bedrock.system_prompt' = 'You are a Mortgage Offer Agent at River Banking, a leading financial institution specializing in responsible, personalized mortgage lending. River Banking is committed to transparent underwriting decisions that clearly communicate the reasoning behind every mortgage approval or rejection.
-   
-   Your role is to read finalized mortgage decisions that include the applicant’s ID, loan eligibility outcome,interest rate (if approved), and an underwriting explanation. Based on this data, generate a formal mortgage
-   offer letter or rejection notice. The letter should reflect River Banking’s tone—professional, clear, and
-   empathetic—and summarize the key reasons behind the decision.
-   
-   If the loan is approved, provide a congratulatory offer message that includes the approved interest rate and a
-   brief recap of why the applicant qualified.
-   
-   If the loan is rejected, write a polite and supportive rejection message that explains the key factors contributing to the decision without disclosing sensitive internal scoring logic.'
-   );
-   ```
-
-2. Build Agent 3
-
-> ⚠️ **Note:** If you're using **AWS Workshop Studio**, be aware that **Bedrock service limits are reduced** for security reasons. As a result, some requests may be throttled.  
->  
-> **Important:** The Flink job may fail if the message backlog exceeds **6 messages**, due to the current **Bedrock limit of 6 requests per minute** in AWS Workshop Studio.
-
-   ```sql
-   SET 'client.statement-name' = 'mortgage-final-decisions-materializer';
-   CREATE TABLE mortgage_final_decisions AS
-   SELECT
-   CAST(d.application_id AS BYTES) AS `key`,
-   d.application_id,
-   d.applicant_id,
-   a.customer_email,
-   a.customer_name as borrower_name,
-   mortgage_letter.response AS letter
-   FROM mortgage_decisions d
-   JOIN mortgage_applications a
-   ON d.application_id = a.application_id
-   CROSS JOIN LATERAL TABLE(
-   ml_predict(
-      'mortgage_decision_model',
-      CONCAT(
-         'You are a Mortgage Offer Agent at River Banking. Your job is to generate a ',
-         'formal mortgage approval or rejection letter based on final underwriting decisions.\n',
-         'Each decision includes an application ID, applicant ID, decision status, loan amount, ',
-         'interest rate (if applicable), and an explanation of the reasoning behind the decision.\n\n',
-         'Instructions:\n',
-         '- If the decision is "Approved", write a friendly and professional offer letter confirming the approval, loan amount, and final interest rate. Include a summary of why the applicant was approved.\n',
-         '- If the decision is "Rejected", write a polite rejection letter explaining the primary reasons, using the explanation field. Be supportive and avoid technical jargon.\n',
-         '- The tone should be respectful, clear, and aligned with River Banking’s values of transparency and personalized service.\n\n',
-         'Input Data:\n',
-         'Application ID: ', d.application_id, '\n',
-         'Applicant ID: ', d.applicant_id, '\n',
-         'Customer Name: ', a.customer_name, '\n',
-         'Loan Amount: ', CAST(a.loan_amount AS STRING), '\n',
-         'Decision: ', d.decision, '\n',
-         'Final Interest Rate: ', CAST(COALESCE(d.final_interest_rate, 0.0) AS STRING), '\n',
-         'Explanation: ', d.explanation, '\n\n',
-         'Expected Output – Mortgage Decision Letter',
-         'Subject: <Subject Line for Email>',
-         'Body: \n\n<Body of Email>'
-      )
-   )
-   ) AS mortgage_letter;
-   ```
-
-   > **Note:** This query should run continuously and **must not be stopped or deleted**.  
-   > Add new cells **above or below** this one before proceeding.  
-   > You should now have **four cells** with queries running continuously. Two from the previous lab and two in this lab.
-
-
-7. In a new cell, check the output of `mortgage_final_decisions`
-
-   ```sql
-   SELECT * FROM mortgage_final_decisions;
-   ```
-
-8. Checkout John's letter
-
-   ```sql
-   SELECT * FROM mortgage_final_decisions WHERE borrower_name = 'John Doe';
-   ```
+We now have mortgage decisions and offers/rejection letters sent to the email you provided above.
 
 ## Topics
 

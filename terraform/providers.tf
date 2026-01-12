@@ -18,6 +18,9 @@ terraform {
     confluent = {
       source  = "confluentinc/confluent"                
     }
+    http = {
+      source = "hashicorp/http"
+    }
   }
 }
 

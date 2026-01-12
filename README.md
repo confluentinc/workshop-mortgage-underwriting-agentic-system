@@ -14,6 +14,7 @@ Before you begin, ensure you have the following installed:
 - [Terraform](https://www.terraform.io/downloads.html) - v1.5.7 or later 
 - [AWS CLI](https://aws.amazon.com/cli/) configured with appropriate credentials
 - [Docker](https://www.docker.com/get-started) - 28.1.1 or later
+- Zapier remote MCP server ([Setup guide](./assets/Zapier-Setup.md))
 - **Java** installed on your laptop - 17 or later
 - **Maven** installed on your laptop - 3.9.9 or later
 - [Optional] [Databricks Account](https://login.databricks.com/?intent=signup) - To analyze Mortgage desisions 
@@ -46,7 +47,23 @@ winget install --id Microsoft.OpenJDK.17 -e
 winget install --id Apache.Maven -e
 ```
 </details> 
+ 
+<details>
+<summary>## Enable Claude 3.7 Sonnet in Amazon Bedrock</summary>
 
+To enable Claude 3.7 Sonnet in your AWS account via Amazon Bedrock:
+
+1. Open the Amazon Bedrock Console (`https://console.aws.amazon.com/bedrock/home?/overview`) and ensure you are in the same region you will deploy.
+2. In the left sidebar, under Bedrock configuration, click Model access.
+3. Locate Claude 3.7 Sonnet in the list of available models.
+4. Click Available to request, then select Request model access.
+5. In the request wizard, click Next and follow the prompts to complete the request.
+
+![Model Access in Bedrock Console](./assets/bedrock1.png)
+
+⏱️ Provisioning may take 2-5 minutes.
+
+</details>
 
 ## Setup
 
@@ -107,9 +124,10 @@ winget install --id Apache.Maven -e
 
    ```bash
    cat > ./terraform.tfvars <<EOF
-   confluent_cloud_api_key = "{Confluent Cloud API Key}"
-   confluent_cloud_api_secret = "{Confluent Cloud API Key Secret}"
-   email = "{your-email}"
+   confluent_cloud_api_key = "CONFLUENT_CLOUD_API_KEY"
+   confluent_cloud_api_secret = "CONFLUENT_CLOUD_API_SECRET"
+   email = "YOUR_EMAIL"
+   zapier_sse_endpoint = "ZAPIER_SSE_ENDPOINT"
    EOF
    ```
    </details>
@@ -118,9 +136,10 @@ winget install --id Apache.Maven -e
    <summary>Click to expand for Windows CMD</summary>
 
    ```bash
-   echo confluent_cloud_api_key = "{Confluent Cloud API Key}" > terraform.tfvars
-   echo confluent_cloud_api_secret = "{Confluent Cloud API Key Secret}" >> terraform.tfvars
-   echo email = "{your-email}" >> terraform.tfvars
+   echo confluent_cloud_api_key = "CONFLUENT_CLOUD_API_KEY" > terraform.tfvars
+   echo confluent_cloud_api_secret = "CONFLUENT_CLOUD_API_SECRET" >> terraform.tfvars
+   echo email = "YOUR_EMAIL" >> terraform.tfvars
+   echo zapier_sse_endpoint = "ZAPIER_SSE_ENDPOINT" >> terraform.tfvars
    ```
    </details>
 
@@ -160,11 +179,7 @@ Once the infrastructure is deployed, we can generate mortgage data. We'll use **
    ```
    cd terraform/data-gen
    ```
-3. Download a ShadowTraffic free trail license key.
-   ```
-   curl -O https://raw.githubusercontent.com/ShadowTraffic/shadowtraffic-examples/master/free-trial-license-docker.env
-   ```
-4. Run ShadowTraffic
+3. Run ShadowTraffic
 
    > ⚠️ **Note:** If you're using **AWS Workshop Studio**, start data generation **immediately before beginning the workshop** and try to **avoid taking long breaks**.  
    >  

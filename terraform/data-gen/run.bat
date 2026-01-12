@@ -8,7 +8,7 @@ docker run ^
        -v %cd%/root.json:/home/root.json ^
        -v %cd%/generators:/home/generators ^
        -v %cd%/connections:/home/connections ^
-       shadowtraffic/shadowtraffic:1.0.8 ^
+       shadowtraffic/shadowtraffic:1.13.4 ^
        --config /home/root.json
 
 if %ERRORLEVEL% neq 0 (

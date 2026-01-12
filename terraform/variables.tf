@@ -51,3 +51,7 @@ variable "lambda_function_name" {
   default     = "credit-check"
 }
 
+variable "zapier_sse_endpoint" {
+  description = "Zapier SSE endpoint URL for MCP server connection"
+  type        = string
+}

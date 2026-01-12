@@ -185,65 +185,6 @@
         "throttleMs": {
             "_gen": "uniformDistribution",
             "bounds": [10000, 15000]
-        },
-        "kafkaValueAvroSchemaHint": {
-            "type": "record",
-            "name": "MortgageApplication",
-            "fields": [
-                {
-                    "name": "application_id",
-                    "type": "string"
-                },
-                {
-                    "name": "customer_email",
-                    "type": "string"
-                },
-                {
-                    "name": "customer_name",
-                    "type": "string"
-                },
-                {
-                    "name": "applicant_id",
-                    "type": "string"
-                },
-                {
-                    "name": "income",
-                    "type": "long"
-                },
-                {
-                    "name": "loan_amount",
-                    "type": "long"
-                },
-                {
-                    "name": "property_value",
-                    "type": "long"
-                },
-                {
-                    "name": "property_address",
-                    "type": "string"
-                },
-                {
-                    "name": "property_state",
-                    "type": "string"
-                },
-                {
-                    "name": "payslips",
-                    "type": "string"
-                },
-                {
-                    "name": "employment_status",
-                    "type": "string"
-                },
-                {
-                    "name": "application_ts",
-                    "type": {
-                        "type" : "long",
-                        "flink.precision" : 3,
-                        "flink.version" : "1",
-                        "logicalType" : "timestamp-millis"
-                    }
-                }
-            ] 
         }
     }
 }
