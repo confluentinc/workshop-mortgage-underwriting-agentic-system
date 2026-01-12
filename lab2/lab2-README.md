@@ -6,7 +6,7 @@ In this lab, we will use AI agents powered by a **Claude model running on Amazon
 - **Agent 1:** Runs on AWS Lambda and performs fraud detection and credit risk assessment.
 - **Agent 2:** Runs on Flink SQL and makes the actual mortgage decision, including interest rate recommendation. It also generates acceptance/rejection letters based on the decision.
 
-By the end of this lab, the entire mortgage application process will be fully automated using intelligent, Bedrock-powered agents.
+By the end of this lab, the entire mortgage application process will be fully automated using [Confluent Streaming Agents](https://www.confluent.io/product/streaming-agents/).
 
 ![Architecture](./assets/HLD.png)
 
@@ -61,9 +61,7 @@ This agent runs on AWS Lambda, so we will use the fully managed Lambda Sink Conn
 
  ## **Agent 2: Combined Mortgage Decision and Letter**
 
-This agent runs on **Confluent Cloud Streaming Agents**, where ML models are treated as first-class citizens. You can register a model once and use it seamlessly within Flink SQL queries.
-
-These agents leverage tool calling to interact directly with external systems or APIs, enabling closed-loop automation — all running natively within Confluent Cloud for Apache Flink.
+Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink SQL with direct access to external tools and APIs — enabling fully automated, closed-loop workflows within your streaming infrastructure.
 
 ![Architecture](./assets/lab2-agent2-hld.png)
 

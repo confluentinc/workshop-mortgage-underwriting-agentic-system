@@ -67,7 +67,10 @@ To enable Claude 3.7 Sonnet in your AWS account via Amazon Bedrock:
 
 ## Setup
 
-1.  Clone the repo onto your local development machine using `git clone https://github.com/confluentinc/workshop-mortgage-underwriting-agentic-system.git`.
+1.  Clone the repo onto your local development machine using:
+      ```
+      git clone https://github.com/confluentinc/workshop-mortgage-underwriting-agentic-system.git
+      ```
 2. Change directory to demo repository and terraform directory.
 
    ```
@@ -257,7 +260,7 @@ This workshop includes two labs:
    Use the fully managed **Oracle XStream CDC Source Connector** to stream credit score data from Oracle DB to **Confluent Cloud**. Then, leverage **Confluent Cloud for Apache Flink** to transform the live stream of mortgage applications into a real-time, contextualized data product—ready to power AI agents.
 
 2. [**Lab 2 – Building AI Agents to process Mortgage Applications**](./lab2/lab2-README.md):  
-   Use **Confluent Cloud for Apache Flink**, **AWS Lambda**, **Amazon Bedrock** to build three AI agents that run sequentially to fully automate the mortgage application process.
+   Use **Confluent Cloud for Apache Flink**, **AWS Lambda**, **Amazon Bedrock** to build two AI agents that run sequentially to fully automate the mortgage application process.
 
 
 After completing Labs 1 and 2, you can run an end-to-end [demo](./Demo/demo-README.md) by submitting an application for a high-credit customer.
