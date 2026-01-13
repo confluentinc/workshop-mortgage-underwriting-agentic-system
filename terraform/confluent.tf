@@ -29,97 +29,6 @@ data "confluent_schema_registry_cluster" "sr-cluster" {
   ]
 }
 
-# ------------------------------------------------------
-# Zapier MCP Connection and Model (Flink SQL)
-# ------------------------------------------------------
-
-resource "confluent_flink_statement" "zapier_mcp_connection" {
-
-  organization {
-    id = data.confluent_organization.confluent_org.id
-  }
-  environment {
-    id = confluent_environment.staging.id
-  }
-  compute_pool {
-    id = confluent_flink_compute_pool.flinkpool-main.id
-  }
-  principal {
-    id = confluent_service_account.app-manager.id
-  }
-  rest_endpoint = data.confluent_flink_region.demo_flink_region.rest_endpoint
-  credentials {
-    key    = confluent_api_key.app-manager-flink-api-key.id
-    secret = confluent_api_key.app-manager-flink-api-key.secret
-  }
-
-  statement_name = "zapier-mcp-connection-create"
-
-  statement = <<-EOT
-    CREATE CONNECTION IF NOT EXISTS `${confluent_environment.staging.display_name}`.`${confluent_kafka_cluster.standard.display_name}`.`zapier-mcp-connection`
-    WITH (
-      'type' = 'MCP_SERVER',
-      'endpoint' = '${var.zapier_sse_endpoint}',
-      'api-key' = 'api_key'
-    );
-  EOT
-
-  properties = {
-    "sql.current-catalog"  = confluent_environment.staging.display_name
-    "sql.current-database" = confluent_kafka_cluster.standard.display_name
-  }
-
-  lifecycle {
-    ignore_changes = [statement]
-  }
-}
-
-resource "confluent_flink_statement" "zapier_mcp_model" {
-
-  organization {
-    id = data.confluent_organization.confluent_org.id
-  }
-  environment {
-    id = confluent_environment.staging.id
-  }
-  compute_pool {
-    id = confluent_flink_compute_pool.flinkpool-main.id
-  }
-  principal {
-    id = confluent_service_account.app-manager.id
-  }
-  rest_endpoint = data.confluent_flink_region.demo_flink_region.rest_endpoint
-  credentials {
-    key    = confluent_api_key.app-manager-flink-api-key.id
-    secret = confluent_api_key.app-manager-flink-api-key.secret
-  }
-
-  statement_name = "zapier-mcp-model-create"
-
-  statement = <<-EOT
-    CREATE MODEL IF NOT EXISTS `${confluent_environment.staging.display_name}`.`${confluent_kafka_cluster.standard.display_name}`.`zapier_mcp_model`
-    INPUT (prompt STRING)
-    OUTPUT (response STRING)
-    WITH (
-      'provider' = 'bedrock',
-      'task' = 'text_generation',
-      'bedrock.connection' = '${confluent_flink_connection.bedrock_connection.display_name}',
-      'bedrock.params.max_tokens' = '50000',
-      'mcp.connection' = 'zapier-mcp-connection'
-    );
-  EOT
-
-  properties = {
-    "sql.current-catalog"  = confluent_environment.staging.display_name
-    "sql.current-database" = "default"
-  }
-
-  depends_on = [
-    confluent_flink_statement.zapier_mcp_connection,
-    confluent_flink_connection.bedrock_connection
-  ]
-}
-
 # Update the config to use a cloud provider and region of your choice.
 # https://registry.terraform.io/providers/confluentinc/confluent/latest/docs/resources/confluent_kafka_cluster
 resource "confluent_kafka_cluster" "standard" {
@@ -377,6 +286,50 @@ output "lambda_connector" {
 
 
 
+# ------------------------------------------------------
+# Zapier MCP Connection and Model (Flink SQL)
+# ------------------------------------------------------
+
+resource "confluent_flink_statement" "zapier_mcp_connection" {
+
+  organization {
+    id = data.confluent_organization.confluent_org.id
+  }
+  environment {
+    id = confluent_environment.staging.id
+  }
+  compute_pool {
+    id = confluent_flink_compute_pool.flinkpool-main.id
+  }
+  principal {
+    id = confluent_service_account.app-manager.id
+  }
+  rest_endpoint = data.confluent_flink_region.demo_flink_region.rest_endpoint
+  credentials {
+    key    = confluent_api_key.app-manager-flink-api-key.id
+    secret = confluent_api_key.app-manager-flink-api-key.secret
+  }
+
+  statement_name = "zapier-mcp-connection-create"
+
+  statement = <<-EOT
+    CREATE CONNECTION IF NOT EXISTS `${confluent_environment.staging.display_name}`.`${confluent_kafka_cluster.standard.display_name}`.`zapier-mcp-connection`
+    WITH (
+      'type' = 'MCP_SERVER',
+      'endpoint' = '${var.zapier_sse_endpoint}',
+      'api-key' = 'api_key'
+    );
+  EOT
+
+  properties = {
+    "sql.current-catalog"  = confluent_environment.staging.display_name
+    "sql.current-database" = confluent_kafka_cluster.standard.display_name
+  }
+
+  lifecycle {
+    ignore_changes = [statement]
+  }
+}
 
 # ------------------------------------------------------
 # LLM Connections and Models
@@ -445,7 +398,22 @@ resource "confluent_flink_statement" "llm_textgen_model_aws" {
     secret = confluent_api_key.app-manager-flink-api-key.secret
   }
 
-  statement = "CREATE MODEL `${confluent_environment.staging.display_name}`.`${confluent_kafka_cluster.standard.display_name}`.`llm_textgen_model` INPUT (prompt STRING) OUTPUT (response STRING) WITH ( 'provider' = 'bedrock', 'task' = 'text_generation', 'bedrock.connection' = '${confluent_flink_connection.bedrock_connection.display_name}', 'bedrock.params.max_tokens' = '50000' );"
+  statement = <<-SQL
+  CREATE MODEL `${confluent_environment.staging.display_name}`.`${confluent_kafka_cluster.standard.display_name}`.`llm_textgen_model`
+  INPUT (prompt STRING)
+  OUTPUT (decision STRING, final_interest_rate STRING, explanation STRING, letter_body STRING)
+  WITH (
+    'provider' = 'bedrock',
+    'task' = 'text_generation',
+    'bedrock.connection' = '${confluent_flink_connection.bedrock_connection.display_name}',
+    'bedrock.ENABLE_JSON_DEEP_PARSING'='true',
+    'bedrock.output_format'='json:/content/0/text',
+    'bedrock.params.max_tokens' = '50000',
+    'bedrock.system_prompt' = 'You’re a Credit and Fraud Risk Analyst at River Banking, a leading financial institution specializing in personalized mortgage solutions. River Banking is committed to responsible lending and fraud prevention through advanced risk analysis and data-driven decision-making.
+    Your role is to assess a mortgage applicant’s financial and risk profile to determine loan eligibility and recommend an appropriate interest rate. You will analyze key indicators such as verified income, credit score, and fraud score. Based on these inputs, you will evaluate the applicant’s ability to repay the loan, identify any potential red flags, and assign a risk category that will inform underwriting decisions.
+    All responses should be formatted as JSON and JSON only according to the output format guidance.'
+  );
+  SQL
 
   properties = {
     "sql.current-catalog"  = confluent_environment.staging.display_name
