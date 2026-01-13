@@ -401,13 +401,11 @@ resource "confluent_flink_statement" "llm_textgen_model_aws" {
   statement = <<-SQL
   CREATE MODEL `${confluent_environment.staging.display_name}`.`${confluent_kafka_cluster.standard.display_name}`.`llm_textgen_model`
   INPUT (prompt STRING)
-  OUTPUT (decision STRING, final_interest_rate STRING, explanation STRING, letter_body STRING)
+  OUTPUT (response STRING)
   WITH (
     'provider' = 'bedrock',
     'task' = 'text_generation',
     'bedrock.connection' = '${confluent_flink_connection.bedrock_connection.display_name}',
-    'bedrock.ENABLE_JSON_DEEP_PARSING'='true',
-    'bedrock.output_format'='json:/content/0/text',
     'bedrock.params.max_tokens' = '50000',
     'bedrock.system_prompt' = 'You’re a Credit and Fraud Risk Analyst at River Banking, a leading financial institution specializing in personalized mortgage solutions. River Banking is committed to responsible lending and fraud prevention through advanced risk analysis and data-driven decision-making.
     Your role is to assess a mortgage applicant’s financial and risk profile to determine loan eligibility and recommend an appropriate interest rate. You will analyze key indicators such as verified income, credit score, and fraud score. Based on these inputs, you will evaluate the applicant’s ability to repay the loan, identify any potential red flags, and assign a risk category that will inform underwriting decisions.
@@ -424,6 +422,7 @@ resource "confluent_flink_statement" "llm_textgen_model_aws" {
     confluent_flink_connection.bedrock_connection
   ]
 }
+
 
 # ------------------------------------------------------
 # Topics

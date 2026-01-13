@@ -102,8 +102,7 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
 
    ```sql
    SET 'client.statement-name' = 'mortgage-decisions-agent';
-   CREATE TABLE mortgage_decisions AS
-
+   CREATE TABLE mortgage_decisions AS 
    SELECT 
       m.application_id,
       m.applicant_id,
@@ -129,7 +128,8 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
          '1. Eligibility decision (Approved or Rejected)\n',
          '2. Risk-adjusted interest rate recommendation\n',
          '3. Clear explanation of the decision\n',
-         '4. Professional communication letter\n\n',
+         '4. Professional communication letter\n',
+         '5. After you finish with all the above check that the output is JSON format based on the schema below.\n\n'
          
          '# DECISION CRITERIA\n\n',
          
@@ -152,7 +152,6 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
          '- Base interest rate assumption: 6.5% (adjust based on risk profile)\n\n',
          
          '# APPLICANT DATA\n',
-         '```\n',
          'Application ID: ', m.application_id, '\n',
          'Applicant ID: ', m.applicant_id, '\n',
          'Borrower Name: ', m.borrower_name, '\n',
@@ -167,22 +166,17 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
          'Fraud Risk Score: ', CAST(m.fraud_risk_score AS STRING), '\n',
          'Loan Stack Risk: ', m.loan_stack_risk, '\n',
          'Risk Category: ', m.risk_category, '\n',
-         'Risk Assessment: ', m.agent_reasoning, '\n',
-         '```\n\n',
-         
-         '# OUTPUT FORMAT - CRITICAL\n',
-         'You MUST return ONLY a valid JSON object. NO preamble, NO explanation, NO markdown code blocks.\n',
-         'Start your response with { and end with }\n',
-         'Do NOT wrap the JSON in ```json or ``` markers.\n\n',
-         
-         '## JSON Schema (STRICT)\n',
-         'Return ONLY a valid JSON object with exactly these fields:\n',
-         '{\n',
-         '  "decision": "Approved" | "Rejected",\n',
-         '  "final_interest_rate": "<string>",\n',
-         '  "explanation": "<string>",\n',
-         '  "letter_body": "<string>"\n',
-         '}\n',
+         'Risk Assessment: ', m.agent_reasoning, '\n\n',
+         'You are an API that responds with JSON only. Do not include explanations, headers, or markdown formatting.\n\n',
+         'Respond ONLY with a raw JSON object like this:\n',
+         '{\n'
+         '"letter_body": (string) acceptace or rejection letter\n',
+         '"decision": (enum) Either "Approved" or "Rejected"\n',
+         '"final_interest_rate": (float) The suggested interest rate for the applicant if the application "decision" is Approved. If the application "decision" is "Rejected" suggest "-1" interest rate.  \n',
+         '"explanation": (string) A brief narrative explaining the decision and interest rate logic\n',
+         '}',
+         'Provide only the JSON.\n\n',
+         'Failure to strictly follow the output format will result in incorrect output.'
          
          '## Field Requirements\n',
          '- decision: Must be exactly "Approved" or "Rejected"\n',
