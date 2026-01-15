@@ -25,10 +25,12 @@ This agent runs on AWS Lambda, so we will use the fully managed Lambda Sink Conn
 
    ![Screenshot](./assets/lab2-lambdasink2.png)
 
-4.  Enter Oracle details - Run ```terraform output lambda_connector``` from `terraform` directory to get the details. Output should look as follows:
+4.  Enter Lambda details - Run ```terraform output lambda_connector``` from `terraform` directory to get the details. Output should look as follows:
    ![Screenshot](./assets/lab2-lambdasink3.png)
 
       - After you enter the details, click **Continue**
+
+      >NOTE: If you encounter `"Invalid Credentials! Please check the credentials provided."`, just click `Continue` again. 
 
 
 5. For Configuration, choose:
