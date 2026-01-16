@@ -185,7 +185,8 @@
                             "throttleMs": {
                                 "_gen": "uniformDistribution",
                                 "bounds": [90000, 95000]
-                            }
+                            },
+                            "maxEvents": 30
                         }
                     }
                 }              

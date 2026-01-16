@@ -130,7 +130,7 @@ To enable Claude 3.7 Sonnet in your AWS account via Amazon Bedrock:
    confluent_cloud_api_key = "CONFLUENT_CLOUD_API_KEY"
    confluent_cloud_api_secret = "CONFLUENT_CLOUD_API_SECRET"
    email = "YOUR_EMAIL"
-   zapier_sse_endpoint = "ZAPIER_SSE_ENDPOINT"
+   zapier_token = "ZAPIER_TOKEN"
    EOF
    ```
    </details>
@@ -142,7 +142,7 @@ To enable Claude 3.7 Sonnet in your AWS account via Amazon Bedrock:
    echo confluent_cloud_api_key = "CONFLUENT_CLOUD_API_KEY" > terraform.tfvars
    echo confluent_cloud_api_secret = "CONFLUENT_CLOUD_API_SECRET" >> terraform.tfvars
    echo email = "YOUR_EMAIL" >> terraform.tfvars
-   echo zapier_sse_endpoint = "ZAPIER_SSE_ENDPOINT" >> terraform.tfvars
+   echo zapier_token = "ZAPIER_TOKEN" >> terraform.tfvars
    ```
    </details>
 

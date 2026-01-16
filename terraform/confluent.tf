@@ -316,8 +316,9 @@ resource "confluent_flink_statement" "zapier_mcp_connection" {
     CREATE CONNECTION IF NOT EXISTS `${confluent_environment.staging.display_name}`.`${confluent_kafka_cluster.standard.display_name}`.`zapier-mcp-connection`
     WITH (
       'type' = 'MCP_SERVER',
-      'endpoint' = '${var.zapier_sse_endpoint}',
-      'api-key' = 'api_key'
+      'endpoint' = 'https://mcp.zapier.com/api/v1/connect',
+      'token' = '${var.zapier_token}',
+      'transport-type' = 'STREAMABLE_HTTP'
     );
   EOT
 

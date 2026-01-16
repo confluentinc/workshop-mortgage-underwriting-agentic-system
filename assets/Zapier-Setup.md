@@ -24,13 +24,15 @@ Add the following tool to your MCP server:
     <img src="./zapier-screenshots/4.png" alt="Add Tools" width="50%" />
 
 <a id="step-4"></a>
-### 4. Get SSE Endpoint URL
+### 4. Get Zapier Token
 
-Click **"Connect",** choose **"Other"** for your client, then change transport to **"SSE Endpoint"**, and **copy the URL.** This is the `zapier_sse_endpoint` you will need to enter when deploying the lab.
+> **Note:** SSE endpoints are now deprecated. Use Streamable HTTP instead.
 
-<img src="./zapier-screenshots/7.png" alt="SSE Endpoint" width="50%" />
+Click **"Connect"** to open the connection credentials dialog. The dialog shows **Option 1 (Authorization header - Recommended)** and **Option 2 (URL with token)**. **Copy the token** from the Token field. This is the `zapier_token` you will need to enter when deploying the lab (add it to `terraform.tfvars` as `zapier_token`).
 
-Make sure the endpoint URL you have ends with `/sse`, and copy it somewhere safe. You will enter this value as the `zapier_sse_endpoint` when deploying the workshop later.
+<img src="./zapier-screenshots/7.png" alt="Streamable HTTP Token" width="50%" />
+
+The endpoint `https://mcp.zapier.com/api/v1/connect` is the same for all Zapier MCP servers - you only need to copy the token. Copy it somewhere safe.
 
 ## Checklist
 
