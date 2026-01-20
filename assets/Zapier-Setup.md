@@ -28,9 +28,11 @@ Add the following tool to your MCP server:
 
 > **Note:** SSE endpoints are now deprecated. Use Streamable HTTP instead.
 
-Click **"Connect"** to open the connection credentials dialog. The dialog shows **Option 1 (Authorization header - Recommended)** and **Option 2 (URL with token)**. **Copy the token** from the Token field. This is the `zapier_token` you will need to enter when deploying the lab (add it to `terraform.tfvars` as `zapier_token`).
+* Click **Connect** Tab to open the connection credentials dialog.
+* Select **Rotate token**. Rotating the token will invalidate the existing connection token, so any clients using the old token must be updated. Confirm by clicking **Rotate token** again.
+* The diaglog will have two options: **Option 1 (Authorization header — Recommended)** and **Option 2 (URL with token)**. We will go with **Option 1**, copy the token from the **Token** field. This value for the `zapier_token` parameter required when deploying the lab.
 
-<img src="./zapier-screenshots/7.png" alt="Streamable HTTP Token" width="50%" />
+    <img src="./zapier-screenshots/7.png" alt="Streamable HTTP Token" width="50%" />
 
 The endpoint `https://mcp.zapier.com/api/v1/connect` is the same for all Zapier MCP servers - you only need to copy the token. Copy it somewhere safe.
 
