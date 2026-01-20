@@ -51,3 +51,7 @@ variable "lambda_function_name" {
   default     = "credit-check"
 }
 
+variable "zapier_token" {
+  description = "Zapier MCP token for Streamable HTTP connection"
+  type        = string
+}

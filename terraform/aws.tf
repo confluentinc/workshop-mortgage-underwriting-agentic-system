@@ -403,6 +403,26 @@ resource "aws_iam_role_policy_attachment" "lambda_bedrock" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonBedrockFullAccess"
 }
 
+# ------------------------------------------------------
+# IAM user for Confluent Flink Bedrock access
+# ------------------------------------------------------
+
+resource "aws_iam_user" "confluent_bedrock_user" {
+  name = "${var.prefix}-bedrock-user-${random_id.env_display_id.hex}"
+}
+
+resource "aws_iam_user_policy_attachment" "confluent_bedrock_user_policy" {
+  user       = aws_iam_user.confluent_bedrock_user.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonBedrockFullAccess"
+}
+
+resource "aws_iam_access_key" "confluent_bedrock_access_key" {
+  user = aws_iam_user.confluent_bedrock_user.name
+  depends_on = [
+    aws_iam_user_policy_attachment.confluent_bedrock_user_policy
+  ]
+}
+
 # Create client.properties file for Lambda function
 resource "local_file" "lambda_properties_file" {
   filename = "${path.module}/code/agent1/client.properties"

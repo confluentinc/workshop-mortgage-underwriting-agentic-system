@@ -54,7 +54,7 @@ We already submitted a mortgage appliaction for `John Doe` a high credit score a
    ```sql
    SELECT * FROM `enriched_mortgage_with_payments` WHERE `borrower_name` = 'Omar Soli'
    ```
-   > NOTE: Output might take 5-7 mins to populate.
+   > NOTE: Output might take 2-3 mins to populate.
 - Checkout his Fraud and Credit Risk score
    ```sql
    SELECT * FROM `mortgage_validated_apps` WHERE borrower_name = 'Omar Soli'
@@ -62,11 +62,6 @@ We already submitted a mortgage appliaction for `John Doe` a high credit score a
 - Checkout the mortgage decision
    ```sql
    SELECT * FROM mortgage_decisions WHERE borrower_name = 'Omar Soli' 
-   ```
-
-- Checkout the mortgage offer
-   ```sql
-   SELECT * FROM mortgage_final_decisions WHERE borrower_name = 'Omar Soli' 
    ```
 
 

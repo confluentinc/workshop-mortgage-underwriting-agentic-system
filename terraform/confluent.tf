@@ -286,6 +286,181 @@ output "lambda_connector" {
 
 
 
+# ------------------------------------------------------
+# Zapier MCP Connection and Model (Flink SQL)
+# ------------------------------------------------------
+
+# Drop existing zapier connection to allow recreation with new transport type
+resource "confluent_flink_statement" "zapier_mcp_connection_drop" {
+
+  organization {
+    id = data.confluent_organization.confluent_org.id
+  }
+  environment {
+    id = confluent_environment.staging.id
+  }
+  compute_pool {
+    id = confluent_flink_compute_pool.flinkpool-main.id
+  }
+  principal {
+    id = confluent_service_account.app-manager.id
+  }
+  rest_endpoint = data.confluent_flink_region.demo_flink_region.rest_endpoint
+  credentials {
+    key    = confluent_api_key.app-manager-flink-api-key.id
+    secret = confluent_api_key.app-manager-flink-api-key.secret
+  }
+
+  statement_name = "zapier-mcp-connection-drop"
+
+  statement = <<-EOT
+    DROP CONNECTION IF EXISTS `${confluent_environment.staging.display_name}`.`${confluent_kafka_cluster.standard.display_name}`.`zapier-mcp-connection`;
+  EOT
+
+  properties = {
+    "sql.current-catalog"  = confluent_environment.staging.display_name
+    "sql.current-database" = confluent_kafka_cluster.standard.display_name
+  }
+}
+
+resource "confluent_flink_statement" "zapier_mcp_connection" {
+
+  organization {
+    id = data.confluent_organization.confluent_org.id
+  }
+  environment {
+    id = confluent_environment.staging.id
+  }
+  compute_pool {
+    id = confluent_flink_compute_pool.flinkpool-main.id
+  }
+  principal {
+    id = confluent_service_account.app-manager.id
+  }
+  rest_endpoint = data.confluent_flink_region.demo_flink_region.rest_endpoint
+  credentials {
+    key    = confluent_api_key.app-manager-flink-api-key.id
+    secret = confluent_api_key.app-manager-flink-api-key.secret
+  }
+
+  statement_name = "zapier-mcp-connection-create"
+
+  statement = <<-EOT
+    CREATE CONNECTION `${confluent_environment.staging.display_name}`.`${confluent_kafka_cluster.standard.display_name}`.`zapier-mcp-connection`
+    WITH (
+      'type' = 'MCP_SERVER',
+      'endpoint' = 'https://mcp.zapier.com/api/v1/connect',
+      'token' = '${var.zapier_token}',
+      'transport-type' = 'STREAMABLE_HTTP'
+    );
+  EOT
+
+  properties = {
+    "sql.current-catalog"  = confluent_environment.staging.display_name
+    "sql.current-database" = confluent_kafka_cluster.standard.display_name
+  }
+
+  depends_on = [
+    confluent_flink_statement.zapier_mcp_connection_drop
+  ]
+
+  lifecycle {
+    ignore_changes = [statement]
+  }
+}
+
+# ------------------------------------------------------
+# LLM Connections and Models
+# ------------------------------------------------------
+
+locals {
+  model_prefix = length(regexall("^us-", var.cloud_region)) > 0 ? "us" : (length(regexall("^eu-", var.cloud_region)) > 0 ? "eu" : "apac")
+}
+
+# Bedrock Text Generation Connection
+resource "confluent_flink_connection" "bedrock_connection" {
+
+  organization {
+    id = data.confluent_organization.confluent_org.id
+  }
+  environment {
+    id = confluent_environment.staging.id
+  }
+  compute_pool {
+    id = confluent_flink_compute_pool.flinkpool-main.id
+  }
+  principal {
+    id = confluent_service_account.app-manager.id
+  }
+  rest_endpoint = data.confluent_flink_region.demo_flink_region.rest_endpoint
+  credentials {
+    key    = confluent_api_key.app-manager-flink-api-key.id
+    secret = confluent_api_key.app-manager-flink-api-key.secret
+  }
+
+  display_name   = "llm-textgen-connection"
+  type           = "BEDROCK"
+  endpoint       = "https://bedrock-runtime.${var.cloud_region}.amazonaws.com/model/${local.model_prefix}.anthropic.claude-3-7-sonnet-20250219-v1:0/invoke"
+  aws_access_key = aws_iam_access_key.confluent_bedrock_access_key.id
+  aws_secret_key = aws_iam_access_key.confluent_bedrock_access_key.secret
+
+  depends_on = [
+    confluent_api_key.app-manager-flink-api-key,
+    confluent_role_binding.app-manager-kafka-cluster-admin
+  ]
+
+  lifecycle {
+    create_before_destroy = false
+  }
+}
+
+
+# Core LLM Model - Text Generation
+resource "confluent_flink_statement" "llm_textgen_model_aws" {
+
+  organization {
+    id = data.confluent_organization.confluent_org.id
+  }
+  environment {
+    id = confluent_environment.staging.id
+  }
+  compute_pool {
+    id = confluent_flink_compute_pool.flinkpool-main.id
+  }
+  principal {
+    id = confluent_service_account.app-manager.id
+  }
+  rest_endpoint = data.confluent_flink_region.demo_flink_region.rest_endpoint
+  credentials {
+    key    = confluent_api_key.app-manager-flink-api-key.id
+    secret = confluent_api_key.app-manager-flink-api-key.secret
+  }
+
+  statement = <<-SQL
+  CREATE MODEL `${confluent_environment.staging.display_name}`.`${confluent_kafka_cluster.standard.display_name}`.`llm_textgen_model`
+  INPUT (prompt STRING)
+  OUTPUT (response STRING)
+  WITH (
+    'provider' = 'bedrock',
+    'task' = 'text_generation',
+    'bedrock.connection' = '${confluent_flink_connection.bedrock_connection.display_name}',
+    'bedrock.params.max_tokens' = '50000',
+    'bedrock.system_prompt' = 'You’re a Credit and Fraud Risk Analyst at River Banking, a leading financial institution specializing in personalized mortgage solutions. River Banking is committed to responsible lending and fraud prevention through advanced risk analysis and data-driven decision-making.
+    Your role is to assess a mortgage applicant’s financial and risk profile to determine loan eligibility and recommend an appropriate interest rate. You will analyze key indicators such as verified income, credit score, and fraud score. Based on these inputs, you will evaluate the applicant’s ability to repay the loan, identify any potential red flags, and assign a risk category that will inform underwriting decisions.
+    All responses should be formatted as JSON and JSON only according to the output format guidance.'
+  );
+  SQL
+
+  properties = {
+    "sql.current-catalog"  = confluent_environment.staging.display_name
+    "sql.current-database" = "default"
+  }
+
+  depends_on = [
+    confluent_flink_connection.bedrock_connection
+  ]
+}
+
 
 # ------------------------------------------------------
 # Topics

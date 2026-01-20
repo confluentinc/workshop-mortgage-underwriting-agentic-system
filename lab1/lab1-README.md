@@ -178,34 +178,35 @@ Then, we will perform a **temporal join** between `enriched_mortgage_application
    ```
 
 
-3. Use a **temporal join** to join `enriched_mortgage_applications` with `applicant_payment_summary` at the time the mortgage application was placed.
+3. Join `enriched_mortgage_applications` with `applicant_payment_summary` and use TTL to manage Flink state.
 
    ```sql
+   SET 'sql.state-ttl' = '1 min';
    SET 'client.statement-name' = 'enriched-mortgage-payments-materializer';
    CREATE TABLE `enriched_mortgage_with_payments`
-   AS
-   SELECT
-   m.application_id,
-   m.customer_email,
-   m.borrower_name,
-   m.applicant_id,
-   m.income,
-   m.payslips,
-   m.loan_amount,
-   m.property_address,
-   m.property_state,
-   m.property_value,
-   m.employment_status,
-   m.credit_score,
-   m.credit_utilization,
-   m.open_credit_accounts,
-   m.recent_defaults,
-   m.debt_to_income_ratio,
-   m.application_ts,
-   p.payment_history
-   FROM `enriched_mortgage_applications` m
-   LEFT JOIN `applicant_payment_summary` FOR SYSTEM_TIME AS OF m.`$rowtime` AS p
-   ON m.applicant_id = p.applicant_id;
+      AS
+      SELECT
+      m.application_id,
+      m.customer_email,
+      m.borrower_name,
+      m.applicant_id,
+      m.income,
+      m.payslips,
+      m.loan_amount,
+      m.property_address,
+      m.property_state,
+      m.property_value,
+      m.employment_status,
+      m.credit_score,
+      m.credit_utilization,
+      m.open_credit_accounts,
+      m.recent_defaults,
+      m.debt_to_income_ratio,
+      m.application_ts,
+      p.payment_history
+      FROM `enriched_mortgage_applications` m
+      LEFT JOIN `applicant_payment_summary` p
+      ON m.applicant_id = p.applicant_id;
    ```
 
    > **Note:** This query should run continuously and **must not be stopped or deleted**.  

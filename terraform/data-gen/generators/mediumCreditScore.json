@@ -1,7 +1,7 @@
 {
     "credit_score": {
         "_gen": "uniformDistribution",
-        "bounds": [501, 800],
+        "bounds": [501, 750],
         "decimals": 0
     },
     "public_records": {
