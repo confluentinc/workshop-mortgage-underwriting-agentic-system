@@ -86,16 +86,15 @@ filename = "${path.module}/data-gen/connections/payments-kafka.json"
 
 resource "local_file" "postgres-json" {
   filename = "${path.module}/data-gen/connections/postgres.json"
-  content  = <<-EOT
-  {
-    "kind": "postgres",
-    "connectionConfigs": {
-        "host": "${var.db_host}",
-        "port": ${var.db_port},
-        "username": "${var.db_username}",
-        "password": "${var.db_password}",
-        "db": "${var.db_name}"
+  content  = jsonencode({
+    kind        = "postgres"
+    tablePolicy = "create"
+    connectionConfigs = {
+      host     = var.db_host
+      port     = var.db_port
+      username = var.db_username
+      password = var.db_password
+      db       = var.db_name
     }
-  }
-  EOT
+  })
 }
