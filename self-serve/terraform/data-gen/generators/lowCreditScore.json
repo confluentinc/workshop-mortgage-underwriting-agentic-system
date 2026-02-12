@@ -1,0 +1,32 @@
+{
+    "credit_score": {
+        "_gen": "uniformDistribution",
+        "bounds": [300, 500],
+        "decimals": 0
+    },
+    "public_records": {
+        "_gen": "weightedOneOf",
+        "choices": [
+            {
+                "weight": 1,
+                "value": 0
+            },
+            {
+                "weight": 1,
+                "value": 1
+            },
+            {
+                "weight": 2,
+                "value": 2
+            },
+            {
+                "weight": 3,
+                "value": 3
+            },
+            {
+                "weight": 3,
+                "value": 4
+            }
+        ]
+    }
+}
