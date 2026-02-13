@@ -14,6 +14,7 @@ By the end of this lab, the entire mortgage application process will be fully au
 
 This Flink Streaming Agent evaluates each enriched application plus payment history, assigns fraud and credit risk signals, and writes a validated record to `mortgage_validated_apps` for downstream decisioning.
 
+![Architecture](./assets/lab2-agent1-hld.png)
 
 1. In [Flink UI](https://confluent.cloud/go/flink), open a SQL workspace.
 2. Create the agent:

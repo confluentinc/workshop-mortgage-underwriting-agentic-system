@@ -35,6 +35,8 @@ The rules were already created by Terraform, there is no need to do anything her
 
 We will source credit score data from the instructor-provided Postgres DB to the `PROD.PUBLIC.APPLICANT_CREDIT_SCORE` topic in Confluent.
 
+![Architecture](./assets/lab1-db-hld.png)
+
 1. In the [Connectors UI](https://confluent.cloud/go/connectors), add a new **Postgres CDC Source** Connector.
 2. Enter your Confluent Cluster credentials, select **Service Account**, then choose **Existing Account**. From the drop-down menu, select the service account that was created for you by Terraform. The service account name should follow this format: `<prefix>-app-manager-<random_suffix>`. Check **Add all required ACLs**, then click **Continue**.
 3. Enter Postgres connection details from `terraform output postgres_cdc_connector`, then click **Continue**.

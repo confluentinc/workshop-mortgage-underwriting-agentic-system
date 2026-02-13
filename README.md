@@ -2,6 +2,8 @@
 
 This is workshop that demonstrates an end-to-end mortgage underwriting workflow on **Confluent Cloud** with **AI agents**. The solution streams mortgage applications and payment history, enriches them with credit data, and applies automated fraud/risk assessment plus decisioning — all in real time.
 
+![Architecture](./assets/HLD.png)
+
 ## What you’ll build
 
 - Real-time ingestion of mortgage applications and historical payments
