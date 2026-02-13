@@ -199,19 +199,8 @@ Once the infrastructure is deployed, we can generate mortgage data. We'll use **
 
 Submit a Mortgage application for `John Doe` - an applicant with high-credit-score.
 
-1. Open a new terminal and navigate to your Terraform directory and run:
-   ```bash
-   terraform output
-   ```
-
-   Look for the value of `webapp_endpoint`. It should look like this:
-
-   ```
-   http://localhost:5000
-   ```
-
-2. Open `http://localhost:5001` in your browser.
-3. Submit a new application using the following details:
+1. Open http://localhost:5001 in your browser.
+2. Submit a new application using the following details:
 
 
    - **Full Name**: `John Doe`
@@ -225,7 +214,7 @@ Submit a Mortgage application for `John Doe` - an applicant with high-credit-sco
 
    ![Architecture](../assets/demo1.png)
 
-4. To verify that the data has been successfully generated, go to the [Confluent Cloud Topic UI](https://confluent.cloud/go/topics). Select your environment and cluster, then click on the `mortgage_applications`, you should see the new application there.
+3. To verify that the data has been successfully generated, go to the [Confluent Cloud Topic UI](https://confluent.cloud/go/topics). Select your environment and cluster, then click on the `mortgage_applications`, you should see the new application there.
 
 
 ## Demo

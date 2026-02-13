@@ -12,7 +12,7 @@ Before starting this demo, make sure you have completed [**Lab 1 – Connecting 
 
 We already submitted a mortgage appliaction for `John Doe` a high credit score applicant. Follow the steps below to submit a mortgage application for a low-credit score customer.
 
-1. Open `http://localhost:5001` in your browser.
+1. Open http://localhost:5001 in your browser.
 3. Submit a new application using the following details:
 
 
