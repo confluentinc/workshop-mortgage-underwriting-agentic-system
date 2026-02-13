@@ -2,7 +2,7 @@
 
 Now that we fully automated the mortgage application process. Let's demo this end to end. 
 
-![Architecture](../assets/HLD.png)
+![Architecture](../../assets/HLD.png)
 
 ## Prerequisites
 
