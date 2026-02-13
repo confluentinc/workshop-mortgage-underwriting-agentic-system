@@ -126,6 +126,10 @@ This Flink Streaming Agent evaluates each enriched application plus payment hist
       )
       ) AS agent_result;
    ```
+> [!IMPORTANT]
+> This query should run continuously and **must not be stopped or deleted**.  
+> Add new cells **above or below** this one before proceeding.
+
 
 4. Verify output:
 
@@ -170,10 +174,6 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
    ```
 
 6. **In the query below, replace <\<YOUR_EMAIL_ADDRESS_HERE\>> with your email** and then start Agent 2.
-
-   > ⚠️ **Note:** If you're using **AWS Workshop Studio**, be aware that **Bedrock service limits are reduced** for security reasons. As a result, some requests may be throttled.  
-   >  
-   > **Important:** The Flink job may fail if the message backlog exceeds **6 messages**, due to the current **Bedrock limit of 6 requests per minute** in AWS Workshop Studio.
 
    ```sql
    SET 'client.statement-name' = 'mortgage-decisions-agent';
@@ -295,9 +295,9 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
    ) AS agent_result(status, response);
    ```
 
-   > **Note:** This query should run continuously and **must not be stopped or deleted**.  
-   > Add new cells **above or below** this one before proceeding.  
-   > You should now have **three cells** with queries running continuously. Two from the previous lab and this one.
+> [!IMPORTANT]
+> This query should run continuously and **must not be stopped or deleted**.  
+> Add new cells **above or below** this one before proceeding.
 
 
 7. In a new cell, check the output of `mortgage_decisions`
