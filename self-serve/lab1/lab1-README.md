@@ -177,9 +177,10 @@ We will now enrich mortgage applications with credit score data. This will creat
    JOIN `PROD.SAMPLE.APPLICANT_CREDIT_SCORE` c
    ON m.applicant_id = c.after.APPLICANT_ID;
    ```
-   > [!IMPORTANT]
-   > This query should run continuously and **must not be stopped or deleted**.  
-   > Add new cells **above or below** this one before proceeding.
+
+> [!IMPORTANT]
+> This query should run continuously and **must not be stopped or deleted**.  
+> Add new cells **above or below** this one before proceeding.
 
 3. Verify output:
 
@@ -235,9 +236,9 @@ Then, we will perform a **temporal join** between `enriched_mortgage_application
    FROM `payment_history`
    GROUP BY applicant_id;
    ```
-   > [!IMPORTANT]
-   > This query should run continuously and **must not be stopped or deleted**.  
-   > Add new cells **above or below** this one before proceeding.
+> [!IMPORTANT]
+> This query should run continuously and **must not be stopped or deleted**.  
+> Add new cells **above or below** this one before proceeding.
 
 
 2. In a new cell, check the output of `applicant_payment_summary`
@@ -280,9 +281,9 @@ Then, we will perform a **temporal join** between `enriched_mortgage_application
       WHERE m.property_value < 500000;
    ```
 
-   > [!IMPORTANT]
-   > This query should run continuously and **must not be stopped or deleted**.  
-   > Add new cells **above or below** this one before proceeding.  
+> [!IMPORTANT]
+> This query should run continuously and **must not be stopped or deleted**.  
+> Add new cells **above or below** this one before proceeding.  
 
 
 
