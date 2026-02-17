@@ -37,6 +37,7 @@
 **/terraform.tfstate.backup
 **/.terraform.lock.hcl
 **/terraform/data-gen/connections/*.json
+**/free-trial-license-docker.env
 **/prod.properties
 **/client.properties
 **/mortgage-application-kafka.json

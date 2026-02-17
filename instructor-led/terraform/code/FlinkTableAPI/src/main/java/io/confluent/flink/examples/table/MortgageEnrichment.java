@@ -80,21 +80,21 @@ public class MortgageEnrichment {
                                 $("employment_status"),
                                 $("application_ts"))
                         .join(
-                                env.from("`PROD.SAMPLE.APPLICANT_CREDIT_SCORE`")
+                                env.from("`PROD.public.applicant_credit_score`")
                                         .select(
                                                 $("after")
-                                                        .get("APPLICANT_ID")
+                                                        .get("applicant_id")
                                                         .as("credit_applicant_id"),
-                                                $("after").get("CREDIT_SCORE").as("CREDIT_SCORE"),
+                                                $("after").get("credit_score").as("credit_score"),
                                                 $("after")
-                                                        .get("CREDIT_UTILIZATION")
-                                                        .as("CREDIT_UTILIZATION"),
+                                                        .get("credit_utilization")
+                                                        .as("credit_utilization"),
                                                 $("after")
-                                                        .get("OPEN_CREDIT_ACCOUNTS")
-                                                        .as("OPEN_CREDIT_ACCOUNTS"),
+                                                        .get("open_credit_accounts")
+                                                        .as("open_credit_accounts"),
                                                 $("after")
-                                                        .get("PUBLIC_RECORDS")
-                                                        .as("PUBLIC_RECORDS")))
+                                                        .get("public_records")
+                                                        .as("public_records")))
                         .where($("applicant_id").isEqual($("credit_applicant_id")))
                         .select(
                                 $("application_id"),
@@ -108,10 +108,10 @@ public class MortgageEnrichment {
                                 $("property_state"),
                                 $("property_value"),
                                 $("employment_status"),
-                                $("CREDIT_SCORE").as("credit_score"),
-                                $("CREDIT_UTILIZATION").as("credit_utilization"),
-                                $("OPEN_CREDIT_ACCOUNTS").as("open_credit_accounts"),
-                                $("PUBLIC_RECORDS").as("recent_defaults"),
+                                $("credit_score").as("credit_score"),
+                                $("credit_utilization").as("credit_utilization"),
+                                $("open_credit_accounts").as("open_credit_accounts"),
+                                $("public_records").as("recent_defaults"),
                                 $("loan_amount")
                                         .cast(DataTypes.DECIMAL(10, 2))
                                         .dividedBy($("income").cast(DataTypes.DECIMAL(10, 2)))

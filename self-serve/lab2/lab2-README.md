@@ -102,7 +102,7 @@ This Flink Streaming Agent evaluates each enriched application plus payment hist
       JSON_VALUE(agent_result.response, '$.risk_category') AS risk_category,
       JSON_VALUE(agent_result.response, '$.agent_reasoning') AS agent_reasoning,
       m.application_ts
-      FROM enriched_mortgage_with_payments_50p m,
+      FROM enriched_mortgage_with_payments m,
       LATERAL TABLE(
       AI_RUN_AGENT(
          'mortgage_risk_agent',
@@ -315,7 +315,7 @@ We now have mortgage decisions and offers/rejection letters sent to the email yo
 
 ## Topics
 
-**Next topic:** [Demo](../Demo/demo-README.md)
+**Next topic:** [Demo](../Demo/demo-README.md) | [Clean-up](../README.md#clean-up)
 
 **Previous topic:** [Lab 1 - Connecting and pre-processing mortgage applications](../lab1/lab1-README.md)
 

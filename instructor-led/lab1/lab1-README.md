@@ -33,20 +33,37 @@ The rules were already created by Terraform, there is no need to do anything her
 
 ## **Setting up the Fully managed Postgres CDC Source Connector**
 
-We will source credit score data from the instructor-provided Postgres DB to the `PROD.PUBLIC.APPLICANT_CREDIT_SCORE` topic in Confluent.
+We will source credit score data from the instructor-provided Postgres DB to the `PROD.public.applicant_credit_score` topic in Confluent.
 
 ![Architecture](./assets/lab1-db-hld.png)
 
-1. In the [Connectors UI](https://confluent.cloud/go/connectors), add a new **Postgres CDC Source** Connector.
-2. Enter your Confluent Cluster credentials, select **Service Account**, then choose **Existing Account**. From the drop-down menu, select the service account that was created for you by Terraform. The service account name should follow this format: `<prefix>-app-manager-<random_suffix>`. Check **Add all required ACLs**, then click **Continue**.
-3. Enter Postgres connection details from `terraform output postgres_cdc_connector`, then click **Continue**.
+1. In the [Connectors UI](https://confluent.cloud/go/connectors), add a new **Postgres CDC Source V2 (Debezium)** connector.
+2. Configure the Kafka credentials:
+   - Select **Service Account** → **Existing Account**
+   - From the drop-down, select the service account created by Terraform (format: `<prefix>-app-manager-<random_suffix>`)
+   - Check **Add all required ACLs**
+   - Click **Continue**
+3. Enter the Postgres connection details, then click **Continue**.
+
+   Run `terraform output postgres_cdc_connector` to get the values for hostname, database name, and password. Use the following format:
+
+   | Field | Value |
+   |-------|-------|
+   | **Database hostname** | _from terraform output_ |
+   | **Database name** | _from terraform output_ |
+   | **Database port** | `5432` |
+   | **Database username** | `postgres` |
+   | **Database password** | _from terraform output_ |
+
+   <img src="./assets/lab1-pgsql-auth.png" width="500">
+
 4. For Configuration enter the following:
    - **Output Key and Value** as `AVRO`
    - **Topic prefix** as `PROD`
    - **Table include list** as `public.applicant_credit_score`
-   - In **advanced configurations** set **Decimal handling mode** to `double` (if available)
+   - In **advanced configurations** set **Decimal handling mode** to `double`
 5. Follow the wizard to create the connector.
-6. After a few minutes, the connector should be up and running. Data will begin flowing from Postgres to the `PROD.PUBLIC.APPLICANT_CREDIT_SCORE` topic.
+6. After a few minutes, the connector should be up and running. Data will begin flowing from Postgres to the `PROD.public.applicant_credit_score` topic.
 
 Finally, to prepare this topic for joining with `mortgage_applications`, we will set the changelog mode to `append` instead of `retract`.
 
@@ -56,14 +73,14 @@ Finally, to prepare this topic for joining with `mortgage_applications`, we will
 10. Use the query editior to run the following query
 
    ```sql
-   ALTER TABLE `PROD.PUBLIC.APPLICANT_CREDIT_SCORE` SET ('changelog.mode' = 'append' , 'value.format' = 'avro-registry');
+   ALTER TABLE `PROD.public.applicant_credit_score` SET ('changelog.mode' = 'append' , 'value.format' = 'avro-registry');
    ```
 
 Now we are ready to enrich Mortage applications with Credit score data.
 
 ## **Enrich Mortgage Applications with Credit Score data**
 
-We will now enrich mortgage applications with credit score data. This will create a new data product called `enriched_mortgage_applications`, which joins the `mortgage_applications` topic with the `PROD.PUBLIC.APPLICANT_CREDIT_SCORE` topic.
+We will now enrich mortgage applications with credit score data. This will create a new data product called `enriched_mortgage_applications`, which joins the `mortgage_applications` topic with the `PROD.public.applicant_credit_score` topic.
 
 ![Architecture](./assets/lab1-table-hld.png)
 
@@ -142,19 +159,21 @@ We will now enrich mortgage applications with credit score data. This will creat
      m.property_state,
      CAST(m.property_value AS DOUBLE) AS property_value,
      m.employment_status,
-     c.after.CREDIT_SCORE AS credit_score,
-     c.after.CREDIT_UTILIZATION AS credit_utilization,
-     c.after.OPEN_CREDIT_ACCOUNTS AS open_credit_accounts,
-     c.after.PUBLIC_RECORDS AS recent_defaults,
+     c.after.credit_score AS credit_score,
+     c.after.credit_utilization AS credit_utilization,
+     c.after.open_credit_accounts AS open_credit_accounts,
+     c.after.public_records AS recent_defaults,
      CAST(ROUND((CAST(m.loan_amount AS DECIMAL(10, 2)) / CAST(m.income AS DECIMAL(10, 2))) * 100, 2) AS DOUBLE) AS debt_to_income_ratio,
      m.application_ts
    FROM `mortgage_applications` m
-   JOIN `PROD.PUBLIC.APPLICANT_CREDIT_SCORE` c
-   ON m.applicant_id = c.after.APPLICANT_ID;
+   JOIN `PROD.public.applicant_credit_score` c
+   ON m.applicant_id = c.after.applicant_id;
    ```
 
+<!-- -->
+
 > [!IMPORTANT]
-> This query should run continuously and **must not be stopped or deleted**.  
+> This query should run continuously and **must not be stopped or deleted**.
 > Add new cells **above or below** this one before proceeding.
 
 3. Verify output:
