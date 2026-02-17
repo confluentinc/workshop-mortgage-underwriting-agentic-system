@@ -76,7 +76,6 @@ winget install --id Apache.Maven -e
    db_host = "POSTGRES_HOST"
    db_port = 5432
    db_name = "POSTGRES_DB"
-   db_username = "POSTGRES_USERNAME"
    db_password = "POSTGRES_PASSWORD"
    EOF
    ```
@@ -94,7 +93,6 @@ winget install --id Apache.Maven -e
    echo db_host = "POSTGRES_HOST" >> terraform.tfvars
    echo db_port = 5432 >> terraform.tfvars
    echo db_name = "POSTGRES_DB" >> terraform.tfvars
-   echo db_username = "POSTGRES_USERNAME" >> terraform.tfvars
    echo db_password = "POSTGRES_PASSWORD" >> terraform.tfvars
    ```
    </details>
