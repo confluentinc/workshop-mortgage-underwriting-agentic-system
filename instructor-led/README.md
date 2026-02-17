@@ -99,13 +99,11 @@ winget install --id Apache.Maven -e
    ```
    </details>
 
+> [!CAUTION]
+> **Your container runtime must be running before deploying Terraform.**
+> Terraform needs a running container runtime (Docker, Colima, or Podman) to build and start the webapp container. If it is not running, `terraform apply` will fail.
+
 4. Verify your container runtime is running
-
-   > [!CAUTION]
-   > **Your container runtime must be running before deploying Terraform.**
-   > Terraform needs a running container runtime (Docker, Colima, or Podman) to build and start the webapp container. If it is not running, `terraform apply` will fail.
-
-   Check the status of your runtime:
 
    | Runtime | Check status | Start |
    |---------|-------------|-------|
