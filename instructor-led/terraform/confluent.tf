@@ -349,6 +349,7 @@ resource "confluent_flink_statement" "zapier_mcp_connection" {
 
 locals {
   model_prefix = length(regexall("^us-", var.cloud_region)) > 0 ? "us" : (length(regexall("^eu-", var.cloud_region)) > 0 ? "eu" : "apac")
+  is_windows   = substr(pathexpand("~"), 0, 1) != "/"
 }
 
 # Bedrock Text Generation Connection

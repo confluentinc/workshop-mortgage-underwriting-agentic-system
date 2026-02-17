@@ -141,7 +141,21 @@ To enable Claude 3.7 Sonnet in your AWS account via Amazon Bedrock:
    ```
    </details>
 
-5. Initialize and deploy Terraform
+5. Verify your container runtime is running
+
+   > [!CAUTION]
+   > **Your container runtime must be running before deploying Terraform.**
+   > Terraform needs a running container runtime (Docker, Colima, or Podman) to build and start the webapp container. If it is not running, `terraform apply` will fail.
+
+   Check the status of your runtime:
+
+   | Runtime | Check status | Start |
+   |---------|-------------|-------|
+   | Docker Desktop | `docker info` | Open Docker Desktop |
+   | Colima | `colima status` | `colima start` |
+   | Podman | `podman machine info` | `podman machine start` |
+
+6. Initialize and deploy Terraform
 
    ```bash
    terraform init

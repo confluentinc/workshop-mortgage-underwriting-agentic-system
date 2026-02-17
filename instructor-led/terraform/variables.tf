@@ -30,6 +30,7 @@ variable "db_name"{
 variable "db_username"{
   description = "Instructor-provided Postgres DB username"
   type        = string
+  default     = "postgres"
 }
 
 variable "db_password"{
