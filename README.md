@@ -13,10 +13,10 @@ This is workshop that demonstrates an end-to-end mortgage underwriting workflow 
 
 ## Choose your path
 
-- **Workshop mode** — Use an instructor-provided Postgres database and Bedrock credentials.
-  Start here: [SETUP-WORKSHOP.md](SETUP-WORKSHOP.md)
-- **Self-serve mode** — Terraform provisions everything (EC2 Postgres, IAM for Bedrock).
-  Start here: [SETUP-SELF-SERVE.md](SETUP-SELF-SERVE.md)
+| Mode | Description | Setup Guide |
+|------|-------------|-------------|
+| **Workshop** | Instructor provides the Postgres database and Bedrock credentials | [Get started](SETUP-WORKSHOP.md) |
+| **Self-serve** | Terraform provisions everything (EC2 Postgres, IAM for Bedrock) | [Get started](SETUP-SELF-SERVE.md) |
 
 ## Clean-up
 
