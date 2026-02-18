@@ -54,7 +54,7 @@ resource "confluent_service_account" "app-manager" {
 resource "confluent_role_binding" "app-manager-kafka-cluster-admin" {
   principal   = "User:${confluent_service_account.app-manager.id}"
   role_name   = "EnvironmentAdmin"
-  crn_pattern = confluent_environment.staging.resource_name  
+  crn_pattern = confluent_environment.staging.resource_name
 }
 
 
@@ -348,32 +348,12 @@ resource "confluent_flink_statement" "zapier_mcp_connection" {
 # ------------------------------------------------------
 
 # ------------------------------------------------------
-# AWS Module (conditional — only for self-serve mode)
+# AWS Module removed — base module receives credentials directly
 # ------------------------------------------------------
-
-module "aws" {
-  count          = var.mode == "self-serve" ? 1 : 0
-  source         = "./modules/aws"
-  cloud_region   = var.cloud_region
-  prefix         = var.prefix
-  env_display_id = random_id.env_display_id.hex
-  email          = var.email
-}
 
 locals {
   model_prefix = length(regexall("^us-", var.cloud_region)) > 0 ? "us" : (length(regexall("^eu-", var.cloud_region)) > 0 ? "eu" : "apac")
   is_windows   = substr(pathexpand("~"), 0, 1) != "/"
-
-  # Resolved DB connection details (conditional on mode)
-  db_host     = var.mode == "workshop" ? var.db_host : module.aws[0].db_host
-  db_port     = var.mode == "workshop" ? var.db_port : module.aws[0].db_port
-  db_name     = var.mode == "workshop" ? var.db_name : module.aws[0].db_name
-  db_username = var.mode == "workshop" ? var.db_username : module.aws[0].db_username
-  db_password = var.mode == "workshop" ? var.db_password : module.aws[0].db_password
-
-  # Resolved Bedrock credentials (conditional on mode)
-  bedrock_access_key = var.mode == "workshop" ? var.bedrock_access_key_id : module.aws[0].bedrock_access_key_id
-  bedrock_secret_key = var.mode == "workshop" ? var.bedrock_secret_access_key : module.aws[0].bedrock_secret_access_key
 }
 
 # Bedrock Text Generation Connection
@@ -400,8 +380,8 @@ resource "confluent_flink_connection" "bedrock_connection" {
   display_name   = "llm-textgen-connection"
   type           = "BEDROCK"
   endpoint       = "https://bedrock-runtime.${var.cloud_region}.amazonaws.com/model/${local.model_prefix}.anthropic.claude-3-7-sonnet-20250219-v1:0/invoke"
-  aws_access_key = local.bedrock_access_key
-  aws_secret_key = local.bedrock_secret_key
+  aws_access_key = var.bedrock_access_key
+  aws_secret_key = var.bedrock_secret_key
 
   depends_on = [
     confluent_api_key.app-manager-flink-api-key,
@@ -444,8 +424,8 @@ resource "confluent_flink_statement" "llm_textgen_model_aws" {
     'task' = 'text_generation',
     'bedrock.connection' = '${confluent_flink_connection.bedrock_connection.display_name}',
     'bedrock.params.max_tokens' = '50000',
-    'bedrock.system_prompt' = 'You’re a Credit and Fraud Risk Analyst at River Banking, a leading financial institution specializing in personalized mortgage solutions. River Banking is committed to responsible lending and fraud prevention through advanced risk analysis and data-driven decision-making.
-    Your role is to assess a mortgage applicant’s financial and risk profile to determine loan eligibility and recommend an appropriate interest rate. You will analyze key indicators such as verified income, credit score, and fraud score. Based on these inputs, you will evaluate the applicant’s ability to repay the loan, identify any potential red flags, and assign a risk category that will inform underwriting decisions.
+    'bedrock.system_prompt' = 'You''re a Credit and Fraud Risk Analyst at River Banking, a leading financial institution specializing in personalized mortgage solutions. River Banking is committed to responsible lending and fraud prevention through advanced risk analysis and data-driven decision-making.
+    Your role is to assess a mortgage applicant''s financial and risk profile to determine loan eligibility and recommend an appropriate interest rate. You will analyze key indicators such as verified income, credit score, and fraud score. Based on these inputs, you will evaluate the applicant''s ability to repay the loan, identify any potential red flags, and assign a risk category that will inform underwriting decisions.
     All responses should be formatted as JSON and JSON only according to the output format guidance.'
   );
   SQL
@@ -509,7 +489,7 @@ resource "confluent_schema" "avro-mortgage_applications" {
   rest_endpoint = data.confluent_schema_registry_cluster.sr-cluster.rest_endpoint
   subject_name = "mortgage_applications-value"
   format = "AVRO"
-  schema = file("${path.module}/schemas/avro/mortgage_applications-value.avsc")
+  schema = file("${path.root}/../schemas/avro/mortgage_applications-value.avsc")
   hard_delete = true
   credentials {
     key    = confluent_api_key.app-manager-schema-registry-api-key.id
@@ -542,7 +522,7 @@ resource "confluent_schema" "avro-payment_history" {
   rest_endpoint = data.confluent_schema_registry_cluster.sr-cluster.rest_endpoint
   subject_name = "payment_history-value"
   format = "AVRO"
-  schema = file("${path.module}/schemas/avro/payment_history-value.avsc")
+  schema = file("${path.root}/../schemas/avro/payment_history-value.avsc")
   hard_delete = true
   credentials {
     key    = confluent_api_key.app-manager-schema-registry-api-key.id
@@ -560,7 +540,7 @@ resource "confluent_schema" "avro-payment_history" {
 data "confluent_organization" "confluent_org" {}
 
 resource "local_file" "flink_table_api_prop_file" {
-filename = "${path.module}/code/FlinkTableAPI/src/main/resources/prod.properties"
+filename = "${path.root}/../code/FlinkTableAPI/src/main/resources/prod.properties"
   content  = <<-EOT
 
 # Cloud region
@@ -574,14 +554,5 @@ client.organization-id=${data.confluent_organization.confluent_org.id}
 client.environment-id=${confluent_environment.staging.id}
 client.compute-pool-id=${confluent_flink_compute_pool.flinkpool-main.id}
 
-  EOT 
+  EOT
   }
-
-
-output "Flink_exec_command" {
-  description = "Command to start Flink Table API code"
-  value       = "java -jar target/flink-table-api-java-demo-0.1.jar '${confluent_environment.staging.display_name}' '${confluent_kafka_cluster.standard.display_name}'"
-}
-
-
-

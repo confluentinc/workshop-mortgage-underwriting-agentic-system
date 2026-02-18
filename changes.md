@@ -1,7 +1,7 @@
 # Unify Terraform Codebases - Task Tracker
 
 ## Overview
-Merging `instructor-led/` and `self-serve/` into a single `terraform/` directory with a `mode` variable (`workshop` / `self-serve`). Both modes use Postgres. AWS resources in a conditional child module.
+Merged `instructor-led/` and `self-serve/` into a single `terraform/` directory with two thin entry points (`workshop/` and `self-serve/`) sharing common modules. Workshop users never download the AWS provider.
 
 ## Tasks
 
@@ -9,21 +9,20 @@ Merging `instructor-led/` and `self-serve/` into a single `terraform/` directory
 |---|------|--------|
 | 1 | Create feature branch `unify-terraform` | Done |
 | 2 | Create directory structure and copy identical files | Done |
-| 3 | Create `terraform/variables.tf` with `mode` variable | Done |
-| 4 | Create `terraform/providers.tf` (confluent + http only) | Done |
-| 5 | Create `terraform/modules/aws/` (RDS Postgres + parameter group + IAM) | Done |
-| 6 | Create `terraform/confluent.tf` with conditional module + locals | Done |
-| 7 | Create `terraform/outputs.tf` with `local.db_*` references | Done |
-| 8 | Copy and fix `terraform/webapp.tf` paths | Done |
-| 9 | Move lab docs (`lab1/`, `lab2/`, `Demo/`) to top level | Done |
-| 10 | Create `SETUP-WORKSHOP.md` and `SETUP-SELF-SERVE.md`, update root `README.md` | Done |
-| 11 | Update `.gitignore` and remove `instructor-led/` + `self-serve/` | Done |
-| 12 | Create `changes.md` tracking document | Done |
+| 3 | Create `terraform/modules/base/` (Confluent resources, webapp, data-gen) | Done |
+| 4 | Update `terraform/modules/aws/` (EC2 Postgres + Debezium CDC + IAM) | Done |
+| 5 | Create `terraform/workshop/` entry point | Done |
+| 6 | Create `terraform/self-serve/` entry point | Done |
+| 7 | Remove old root-level terraform files | Done |
+| 8 | Move lab docs (`lab1/`, `lab2/`, `Demo/`) to top level | Done |
+| 9 | Create `SETUP-WORKSHOP.md` and `SETUP-SELF-SERVE.md`, update root `README.md` | Done |
+| 10 | Update `.gitignore` and remove `instructor-led/` + `self-serve/` | Done |
 
 ## Key Architecture Decisions
 
-- **`mode` variable**: `workshop` (instructor provides DB + Bedrock keys) or `self-serve` (Terraform provisions RDS Postgres + IAM for Bedrock)
-- **Conditional AWS module**: `module "aws" { count = var.mode == "self-serve" ? 1 : 0 }` — AWS provider only loaded when needed
-- **RDS Postgres**: `db.t3.small`, engine `postgres 15`, with `rds.logical_replication = 1` parameter group for Debezium CDC
-- **Unified locals**: `local.db_host`, `local.bedrock_access_key` etc. resolve to either user-provided vars or module outputs
+- **Two entry points**: `terraform/workshop/` and `terraform/self-serve/` — users `cd` into the right one
+- **Shared modules**: `modules/base/` (Confluent, webapp, data-gen) and `modules/aws/` (EC2 Postgres, IAM)
+- **No AWS provider for workshop**: AWS provider is only declared inside `modules/aws/`, which is only called by `self-serve/main.tf`
+- **EC2 Postgres with Debezium CDC**: Docker Postgres 15 with `wal_level=logical`, replication slots, and `pg_hba.conf` for remote CDC
+- **All AWS resources tagged**: `var.email` via provider `default_tags`, random suffix in all resource names
 - **Both modes use Postgres**: Eliminated Oracle, unified field name casing (lowercase), unified data-gen configs

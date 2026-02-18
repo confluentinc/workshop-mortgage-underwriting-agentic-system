@@ -1,21 +1,21 @@
 output "db_host" {
-  value = aws_db_instance.postgres.address
+  value = aws_instance.postgres_instance.public_dns
 }
 
 output "db_port" {
-  value = aws_db_instance.postgres.port
+  value = 5432
 }
 
 output "db_name" {
-  value = aws_db_instance.postgres.db_name
+  value = "app1"
 }
 
 output "db_username" {
-  value = aws_db_instance.postgres.username
+  value = "postgres"
 }
 
 output "db_password" {
-  value     = aws_db_instance.postgres.password
+  value     = "password"
   sensitive = true
 }
 

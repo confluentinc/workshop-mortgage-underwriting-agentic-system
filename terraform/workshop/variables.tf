@@ -1,14 +1,3 @@
-variable "mode" {
-  description = "Deployment mode: 'workshop' (instructor provides DB and Bedrock keys) or 'self-serve' (Terraform provisions everything)"
-  type        = string
-  default     = "workshop"
-
-  validation {
-    condition     = contains(["workshop", "self-serve"], var.mode)
-    error_message = "The mode variable must be either 'workshop' or 'self-serve'."
-  }
-}
-
 variable "prefix" {
   description = "Prefix for resource names"
   type        = string
@@ -42,12 +31,11 @@ variable "zapier_token" {
   type        = string
 }
 
-# --- Workshop-mode variables (instructor provides these) ---
+# --- Instructor-provided credentials ---
 
 variable "db_host" {
-  description = "Instructor-provided Postgres DB host (required when mode=workshop)"
+  description = "Instructor-provided Postgres DB host"
   type        = string
-  default     = ""
 }
 
 variable "db_port" {
@@ -57,9 +45,8 @@ variable "db_port" {
 }
 
 variable "db_name" {
-  description = "Instructor-provided Postgres DB name (required when mode=workshop)"
+  description = "Instructor-provided Postgres DB name"
   type        = string
-  default     = ""
 }
 
 variable "db_username" {
@@ -69,30 +56,19 @@ variable "db_username" {
 }
 
 variable "db_password" {
-  description = "Instructor-provided Postgres DB password (required when mode=workshop)"
+  description = "Instructor-provided Postgres DB password"
   type        = string
   sensitive   = true
-  default     = ""
 }
 
 variable "bedrock_access_key_id" {
-  description = "AWS access key ID for Bedrock (required when mode=workshop)"
+  description = "AWS access key ID for Bedrock"
   type        = string
   sensitive   = true
-  default     = ""
 }
 
 variable "bedrock_secret_access_key" {
-  description = "AWS secret access key for Bedrock (required when mode=workshop)"
+  description = "AWS secret access key for Bedrock"
   type        = string
   sensitive   = true
-  default     = ""
-}
-
-# --- Self-serve-mode variables ---
-
-variable "email" {
-  description = "Your email to tag all AWS resources (required when mode=self-serve)"
-  type        = string
-  default     = ""
 }

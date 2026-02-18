@@ -76,16 +76,12 @@ Provisioning may take 2-5 minutes.
 
 ## Setup
 
-1.  Clone the repo onto your local development machine using:
+1.  Clone the repo and change directory to the terraform self-serve directory:
       ```
       git clone https://github.com/confluentinc/workshop-mortgage-underwriting-agentic-system.git
+      cd workshop-mortgage-underwriting-agentic-system/terraform/self-serve
       ```
-2. Change directory to the terraform directory.
-
-   ```
-   cd workshop-mortgage-underwriting-agentic-system/terraform
-   ```
-3. Configure AWS CLI
+2. Configure AWS CLI
 
    If you already have the AWS CLI configured on your machine and pointing to the correct AWS account, you can skip this step.
 
@@ -115,14 +111,13 @@ Provisioning may take 2-5 minutes.
 
    </details>
 
-4. In `terraform` directory, create a `terraform.tfvars` file to store the Confluent Cloud API keys required by Terraform. Replace the placeholders below with your own keys and `{your-email}` with your email.
+3. In `terraform` directory, create a `terraform.tfvars` file to store the Confluent Cloud API keys required by Terraform. Replace the placeholders below with your own keys and `{your-email}` with your email.
 
    <details>
    <summary>Click to expand for Mac</summary>
 
    ```bash
    cat > ./terraform.tfvars <<EOF
-   mode = "self-serve"
    confluent_cloud_api_key = "CONFLUENT_CLOUD_API_KEY"
    confluent_cloud_api_secret = "CONFLUENT_CLOUD_API_SECRET"
    email = "YOUR_EMAIL"
@@ -135,8 +130,7 @@ Provisioning may take 2-5 minutes.
    <summary>Click to expand for Windows CMD</summary>
 
    ```bash
-   echo mode = "self-serve" > terraform.tfvars
-   echo confluent_cloud_api_key = "CONFLUENT_CLOUD_API_KEY" >> terraform.tfvars
+   echo confluent_cloud_api_key = "CONFLUENT_CLOUD_API_KEY" > terraform.tfvars
    echo confluent_cloud_api_secret = "CONFLUENT_CLOUD_API_SECRET" >> terraform.tfvars
    echo email = "YOUR_EMAIL" >> terraform.tfvars
    echo zapier_token = "ZAPIER_TOKEN" >> terraform.tfvars
@@ -147,7 +141,7 @@ Provisioning may take 2-5 minutes.
 > **Your container runtime must be running before deploying Terraform.**
 > Terraform needs a running container runtime (Docker, Colima, or Podman) to build and start the webapp container. If it is not running, `terraform apply` will fail.
 
-5. Verify your container runtime is running
+4. Verify your container runtime is running
 
    | Runtime | Check status | Start |
    |---------|-------------|-------|
@@ -155,7 +149,7 @@ Provisioning may take 2-5 minutes.
    | Colima | `colima status` | `colima start` |
    | Podman | `podman machine info` | `podman machine start` |
 
-6. Initialize and deploy Terraform
+5. Initialize and deploy Terraform
 
    ```bash
    terraform init
@@ -169,8 +163,6 @@ Provisioning may take 2-5 minutes.
 
 > [!IMPORTANT]
 > Run this step in a different tab. Data gen needs to continously run.
-
-> **Note:** The RDS Postgres instance may take a few minutes to become available after Terraform completes. Please wait before proceeding with the next steps.
 
 Once the infrastructure is deployed, we can generate mortgage data. We'll use **ShadowTraffic** to send `mortgage_applications` and `historical_payments` to **Kafka**, and `credit_score` data to **Postgres**.
 

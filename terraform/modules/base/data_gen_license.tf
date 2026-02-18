@@ -7,8 +7,6 @@ data "http" "shadowtraffic_license" {
 }
 
 resource "local_file" "shadowtraffic_license" {
-  filename = "${path.module}/data-gen/free-trial-license-docker.env"
+  filename = "${path.root}/../data-gen/free-trial-license-docker.env"
   content  = data.http.shadowtraffic_license.response_body
 }
-
-

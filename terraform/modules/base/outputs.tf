@@ -1,4 +1,4 @@
-output "resource-ids" {
+output "resource_ids" {
   value = <<-EOT
   Environment ID:   ${confluent_environment.staging.id}
   Kafka Cluster ID: ${confluent_kafka_cluster.standard.id}
@@ -27,21 +27,30 @@ output "resource-ids" {
   sensitive = true
 }
 
+output "flink_exec_command" {
+  description = "Command to start Flink Table API code"
+  value       = "java -jar target/flink-table-api-java-demo-0.1.jar '${confluent_environment.staging.display_name}' '${confluent_kafka_cluster.standard.display_name}'"
+}
+
+output "webapp_endpoint" {
+  description = "Local webapp URL"
+  value       = "http://localhost:5001"
+}
+
 output "postgres_cdc_connector" {
   value = {
-    database_hostname = local.db_host
-    database_port     = local.db_port
-    database_username = local.db_username
-    database_password = local.db_password
-    database_name     = local.db_name
+    database_hostname = var.db_host
+    database_port     = var.db_port
+    database_username = var.db_username
+    database_password = var.db_password
+    database_name     = var.db_name
   }
   sensitive = true
 }
 
-
 # Create ShadowTraffic Connection Files
 resource "local_file" "mortgage-applictation-kafka-json" {
-filename = "${path.module}/data-gen/connections/mortgage-application-kafka.json"
+filename = "${path.root}/../data-gen/connections/mortgage-application-kafka.json"
   content  = <<-EOT
 {
     "kind": "kafka",
@@ -63,7 +72,7 @@ filename = "${path.module}/data-gen/connections/mortgage-application-kafka.json"
   }
 
 resource "local_file" "payments-kafka-json" {
-filename = "${path.module}/data-gen/connections/payments-kafka.json"
+filename = "${path.root}/../data-gen/connections/payments-kafka.json"
   content  = <<-EOT
 {
     "kind": "kafka",
@@ -85,16 +94,16 @@ filename = "${path.module}/data-gen/connections/payments-kafka.json"
   }
 
 resource "local_file" "postgres-json" {
-  filename = "${path.module}/data-gen/connections/postgres.json"
+  filename = "${path.root}/../data-gen/connections/postgres.json"
   content  = jsonencode({
     kind        = "postgres"
     tablePolicy = "create"
     connectionConfigs = {
-      host     = local.db_host
-      port     = local.db_port
-      username = local.db_username
-      password = local.db_password
-      db       = local.db_name
+      host     = var.db_host
+      port     = var.db_port
+      username = var.db_username
+      password = var.db_password
+      db       = var.db_name
     }
   })
 }

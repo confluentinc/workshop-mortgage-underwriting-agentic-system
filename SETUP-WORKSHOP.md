@@ -52,23 +52,18 @@ winget install --id Apache.Maven -e
 ## Setup
 
 
-1.  Clone the repo onto your local development machine using:
+1.  Clone the repo and change directory to the terraform workshop directory:
       ```
       git clone https://github.com/confluentinc/workshop-mortgage-underwriting-agentic-system.git
+      cd workshop-mortgage-underwriting-agentic-system/terraform/workshop
       ```
-2. Change directory to the terraform directory.
-
-   ```
-   cd workshop-mortgage-underwriting-agentic-system/terraform
-   ```
-3. In `terraform` directory, create a `terraform.tfvars` file with Confluent Cloud API keys and instructor-provided Postgres details. Replace the placeholders below with your own keys.
+2. In `terraform` directory, create a `terraform.tfvars` file with Confluent Cloud API keys and instructor-provided Postgres details. Replace the placeholders below with your own keys.
 
    <details>
    <summary>Click to expand for Mac</summary>
 
    ```bash
    cat > ./terraform.tfvars <<EOF
-   mode = "workshop"
    confluent_cloud_api_key = "CONFLUENT_CLOUD_API_KEY"
    confluent_cloud_api_secret = "CONFLUENT_CLOUD_API_SECRET"
    zapier_token = "ZAPIER_TOKEN"
@@ -86,8 +81,7 @@ winget install --id Apache.Maven -e
    <summary>Click to expand for Windows CMD</summary>
 
    ```bash
-   echo mode = "workshop" > terraform.tfvars
-   echo confluent_cloud_api_key = "CONFLUENT_CLOUD_API_KEY" >> terraform.tfvars
+   echo confluent_cloud_api_key = "CONFLUENT_CLOUD_API_KEY" > terraform.tfvars
    echo confluent_cloud_api_secret = "CONFLUENT_CLOUD_API_SECRET" >> terraform.tfvars
    echo zapier_token = "ZAPIER_TOKEN" >> terraform.tfvars
    echo bedrock_access_key_id = "AWS_ACCESS_KEY_ID" >> terraform.tfvars
@@ -103,7 +97,7 @@ winget install --id Apache.Maven -e
 > **Your container runtime must be running before deploying Terraform.**
 > Terraform needs a running container runtime (Docker, Colima, or Podman) to build and start the webapp container. If it is not running, `terraform apply` will fail.
 
-4. Verify your container runtime is running
+3. Verify your container runtime is running
 
    | Runtime | Check status | Start |
    |---------|-------------|-------|
@@ -111,7 +105,7 @@ winget install --id Apache.Maven -e
    | Colima | `colima status` | `colima start` |
    | Podman | `podman machine info` | `podman machine start` |
 
-5. Initialize and deploy Terraform
+4. Initialize and deploy Terraform
 
    ```bash
    terraform init
