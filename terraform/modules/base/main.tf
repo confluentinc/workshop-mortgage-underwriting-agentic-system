@@ -489,7 +489,7 @@ resource "confluent_schema" "avro-mortgage_applications" {
   rest_endpoint = data.confluent_schema_registry_cluster.sr-cluster.rest_endpoint
   subject_name = "mortgage_applications-value"
   format = "AVRO"
-  schema = file("${path.root}/../schemas/avro/mortgage_applications-value.avsc")
+  schema = file("${path.module}/schemas/avro/mortgage_applications-value.avsc")
   hard_delete = true
   credentials {
     key    = confluent_api_key.app-manager-schema-registry-api-key.id
@@ -522,7 +522,7 @@ resource "confluent_schema" "avro-payment_history" {
   rest_endpoint = data.confluent_schema_registry_cluster.sr-cluster.rest_endpoint
   subject_name = "payment_history-value"
   format = "AVRO"
-  schema = file("${path.root}/../schemas/avro/payment_history-value.avsc")
+  schema = file("${path.module}/schemas/avro/payment_history-value.avsc")
   hard_delete = true
   credentials {
     key    = confluent_api_key.app-manager-schema-registry-api-key.id
