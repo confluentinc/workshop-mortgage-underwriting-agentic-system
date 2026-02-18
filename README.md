@@ -13,8 +13,8 @@ This is workshop that demonstrates an end-to-end mortgage underwriting workflow 
 
 ## Choose your path
 
-- **Self-serve** — Oracle is provisioned for you.  
-  Start here: [self-serve/README.md](self-serve/README.md)
-- **Instructor-led** — Use an instructor-provided Postgres database.  
-  Start here: [instructor-led/README.md](instructor-led/README.md)
+- **Workshop mode** — Use an instructor-provided Postgres database and Bedrock credentials.
+  Start here: [SETUP-WORKSHOP.md](SETUP-WORKSHOP.md)
+- **Self-serve mode** — Terraform provisions everything (RDS Postgres, IAM for Bedrock).
+  Start here: [SETUP-SELF-SERVE.md](SETUP-SELF-SERVE.md)
 
