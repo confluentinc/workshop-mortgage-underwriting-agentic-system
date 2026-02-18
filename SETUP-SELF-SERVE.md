@@ -166,10 +166,9 @@ Provisioning may take 2-5 minutes.
 
 Once the infrastructure is deployed, we can generate mortgage data. We'll use **ShadowTraffic** to send `mortgage_applications` and `historical_payments` to **Kafka**, and `credit_score` data to **Postgres**.
 
-1. Open the repo directory in a new terminal window.
-2. Change directory to `data-gen` directory:
+1. Open a new terminal window and navigate to the data-gen directory from the repo root:
    ```
-   cd terraform/data-gen
+   cd workshop-mortgage-underwriting-agentic-system/terraform/data-gen
    ```
 3. Run ShadowTraffic
 
