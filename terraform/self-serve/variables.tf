@@ -7,7 +7,7 @@ variable "prefix" {
 variable "cloud_region" {
   description = "AWS Cloud Region"
   type        = string
-  default     = "us-west-2"
+  default     = "us-east-1"
 }
 
 variable "confluent_cloud_api_key" {

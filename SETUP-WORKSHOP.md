@@ -208,7 +208,7 @@ Before tearing down the infrastructure, delete the Postgres CDC connector, as it
 confluent connect cluster delete <CONNECTOR_ID> --cluster <CLUSTER_ID> --environment <ENVIRONMENT_ID> --force
 ```
 
-To destroy all the resources created run the command below from the ```terraform``` directory:
+To destroy all the resources created run the command below from the ```terraform/workshop``` directory:
 
 ```
 terraform destroy --auto-approve
