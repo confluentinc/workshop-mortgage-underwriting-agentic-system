@@ -2,6 +2,8 @@
 
 set -e
 
+IMAGE="ghcr.io/ahmedszamzam/datagen:latest"
+
 runtime=""
 if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
   runtime="docker"
@@ -12,12 +14,5 @@ else
   exit 1
 fi
 
-$runtime run \
-       --rm \
-       --env-file free-trial-license-docker.env \
-       --net=host \
-       -v $(pwd)/root.json:/home/root.json \
-       -v $(pwd)/generators:/home/generators \
-       -v $(pwd)/connections:/home/connections \
-       shadowtraffic/shadowtraffic:1.13.4 \
-       --config /home/root.json
+$runtime pull $IMAGE
+$runtime run --rm --env-file .datagen.env $IMAGE

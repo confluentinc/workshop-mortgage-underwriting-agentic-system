@@ -48,12 +48,13 @@ This Flink Streaming Agent evaluates each enriched application plus payment hist
      - >50% → High risk
 
    # FRAUD RISK GUIDELINES
-   Evaluate fraud risk using patterns like:
-   - Inconsistent income vs loan amount
-   - High credit utilization + recent defaults
-   - Unusual payment history or high failure rate
-   - Any anomalies in applicant identity or payment history
-   Only mark fraud risk as high if there are multiple strong indicators.
+   Evaluate fraud risk using these patterns:
+   - High payment failure rate (>50% failed payments is a strong indicator)
+   - High credit utilization (>60%) combined with recent defaults (≥3)
+   - Debt-to-income ratio >100% with low credit score (<600)
+   A low loan-to-income ratio or low property value relative to income is NOT a fraud indicator — it simply means the applicant is borrowing conservatively.
+   A small number of payment records is NOT suspicious — it may indicate a new customer.
+   Only mark fraud risk as high (score >70) if there are multiple strong indicators from the list above.
 
    # OUTPUT REQUIREMENTS
    Return a JSON object with the following fields:
@@ -173,7 +174,10 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
    );
    ```
 
-6. **In the query below, replace <\<YOUR_EMAIL_ADDRESS_HERE\>> with your email** and then start Agent 2.
+6. **In the query below, replace `<<YOUR_EMAIL_ADDRESS_HERE>>` with your email** and then start Agent 2.
+
+> [!WARNING]
+> You **must** replace `<<YOUR_EMAIL_ADDRESS_HERE>>` with your actual email address in the query below. If you skip this step, you will not receive the mortgage decision email.
 
    ```sql
    SET 'client.statement-name' = 'mortgage-decisions-agent';
@@ -217,7 +221,7 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
          '- Debt-to-Income Ratio: Acceptable range is 1-600%. Ratios > 600% require strong compensating factors.\n',
          
          '## Risk Factors\n',
-         '- fraud_risk_score: Scores > 0.7 require additional scrutiny or rejection.\n',
+         '- fraud_risk_score: Scores > 70 require additional scrutiny or rejection.\n',
          '- loan_stack_risk: HIGH risk may lead to rejection or rate adjustment.\n',
          '- risk_category: Consider overall risk profile in final decision.\n\n',
          

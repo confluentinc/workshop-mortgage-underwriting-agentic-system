@@ -30,7 +30,7 @@ Add the following tool to your MCP server:
 
 * Click **Connect** Tab to open the connection credentials dialog.
 * Select **Rotate token**. Rotating the token will invalidate the existing connection token, so any clients using the old token must be updated. Confirm by clicking **Rotate token** again.
-* The diaglog will have two options: **Option 1 (Authorization header — Recommended)** and **Option 2 (URL with token)**. We will go with **Option 1**, copy the token from the **Token** field. This value for the `zapier_token` parameter required when deploying the lab.
+* Select **Authorization header** and copy the token from the **Token** field. You will need this as the `zapier_token` parameter when deploying the lab.
 
     <img src="./zapier-screenshots/7.png" alt="Streamable HTTP Token" width="50%" />
 
@@ -40,8 +40,7 @@ The endpoint `https://mcp.zapier.com/api/v1/connect` is the same for all Zapier 
 
 - [ ] Created MCP server and chose "Other" as the MCP client ([step 2](#step-2))
 - [ ] Added **`Gmail: Send Email`** tool ([step 3](#step-3))
-- [ ] Server URL ends in `/sse` ([step 4](#step-4))
-- [ ] Copied the URL somewhere safe, to enter it later during deployment ([step 4](#step-4))
+- [ ] Copied the token somewhere safe, to enter it later during deployment ([step 4](#step-4))
 
 ## Navigation
 

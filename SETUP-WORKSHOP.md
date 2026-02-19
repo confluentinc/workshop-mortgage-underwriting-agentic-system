@@ -15,8 +15,6 @@ Before starting, make sure you have:
 | **Terraform** v1.5.7+ | `brew install terraform` or [download](https://www.terraform.io/downloads.html) |
 | **Git CLI** | `brew install git` |
 | **Container runtime** (Docker Desktop, Colima, or Podman) | Install one runtime |
-| **Java 17+** | `brew install openjdk@17` |
-| **Maven 3.9.9+** | `brew install maven` |
 | **Zapier MCP token** | [Setup guide](./assets/Zapier-Setup.md) |
 
 
@@ -24,29 +22,35 @@ Before starting, make sure you have:
 <details>
 <summary>Installing prerequisites on MAC</summary>
 
-Install the prerequisites by running:
+1. Install dependencies:
+   ```bash
+   brew install git terraform
+   ```
 
-```bash
-brew install git terraform confluentinc/tap/cli maven openjdk@17 && brew install --cask docker
-```
-
-> If you prefer Colima or Podman, install those separately. Terraform will auto-detect the runtime.
+2. Install a container runtime:
+   ```bash
+   brew install colima docker
+   # brew install --cask docker       # Docker Desktop
+   # brew install podman              # Podman
+   ```
 
 </details>
 
 <details>
 <summary>Installing prerequisites on Windows</summary>
 
-Install the prerequisites by running:
+1. Install dependencies:
+   ```powershell
+   winget install --id Git.Git -e
+   winget install --id Hashicorp.Terraform -e
+   ```
 
-```powershell
-winget install --id Git.Git -e
-winget install --id Hashicorp.Terraform -e
-winget install --id ConfluentInc.Confluent-CLI -e
-winget install --id Docker.DockerDesktop -e
-winget install --id Microsoft.OpenJDK.17 -e
-winget install --id Apache.Maven -e
-```
+2. Install a container runtime:
+   ```powershell
+   winget install --id Docker.DockerDesktop -e
+   # Alternatively, install Podman: winget install --id RedHat.Podman -e
+   ```
+
 </details>
 
 ## Setup
@@ -57,41 +61,27 @@ winget install --id Apache.Maven -e
       git clone https://github.com/confluentinc/workshop-mortgage-underwriting-agentic-system.git
       cd workshop-mortgage-underwriting-agentic-system/terraform/workshop
       ```
-2. In `terraform` directory, create a `terraform.tfvars` file with Confluent Cloud API keys and instructor-provided Postgres details. Replace the placeholders below with your own keys.
-
-   <details>
-   <summary>Click to expand for Mac</summary>
-
+2. Rename the template file and update it with your values:
+   **Mac/Linux:**
    ```bash
-   cat > ./terraform.tfvars <<EOF
-   confluent_cloud_api_key = "CONFLUENT_CLOUD_API_KEY"
-   confluent_cloud_api_secret = "CONFLUENT_CLOUD_API_SECRET"
-   zapier_token = "ZAPIER_TOKEN"
-   bedrock_access_key_id = "AWS_ACCESS_KEY_ID"
-   bedrock_secret_access_key = "AWS_SECRET_ACCESS_KEY"
-   db_host = "POSTGRES_HOST"
-   db_port = 5432
-   db_name = "POSTGRES_DB"
-   db_password = "POSTGRES_PASSWORD"
-   EOF
+   mv terraform.tfvars.example terraform.tfvars
    ```
-   </details>
-
-   <details>
-   <summary>Click to expand for Windows CMD</summary>
-
-   ```bash
-   echo confluent_cloud_api_key = "CONFLUENT_CLOUD_API_KEY" > terraform.tfvars
-   echo confluent_cloud_api_secret = "CONFLUENT_CLOUD_API_SECRET" >> terraform.tfvars
-   echo zapier_token = "ZAPIER_TOKEN" >> terraform.tfvars
-   echo bedrock_access_key_id = "AWS_ACCESS_KEY_ID" >> terraform.tfvars
-   echo bedrock_secret_access_key = "AWS_SECRET_ACCESS_KEY" >> terraform.tfvars
-   echo db_host = "POSTGRES_HOST" >> terraform.tfvars
-   echo db_port = 5432 >> terraform.tfvars
-   echo db_name = "POSTGRES_DB" >> terraform.tfvars
-   echo db_password = "POSTGRES_PASSWORD" >> terraform.tfvars
+   **Windows:**
+   ```cmd
+   ren terraform.tfvars.example terraform.tfvars
    ```
-   </details>
+   Open `terraform.tfvars` in your editor and replace the following placeholders:
+
+   | Variable | Where to get it |
+   |----------|----------------|
+   | `confluent_cloud_api_key` | Your Confluent Cloud API key |
+   | `confluent_cloud_api_secret` | Your Confluent Cloud API secret |
+   | `zapier_token` | From [Zapier MCP setup](./assets/Zapier-Setup.md) |
+   | `bedrock_access_key_id` | Provided by your instructor |
+   | `bedrock_secret_access_key` | Provided by your instructor |
+   | `db_host` | Provided by your instructor |
+   | `db_name` | Provided by your instructor |
+   | `db_password` | Provided by your instructor |
 
 > [!CAUTION]
 > **Your container runtime must be running before deploying Terraform.**
@@ -120,13 +110,13 @@ winget install --id Apache.Maven -e
 > [!IMPORTANT]
 > Run this step in a different tab. Data gen needs to continously run.
 
-Once the infrastructure is deployed, we can generate mortgage data. We'll use **ShadowTraffic** to send `mortgage_applications` and `historical_payments` to **Kafka**, and `credit_score` data to **Postgres**.
+Once the infrastructure is deployed, we can generate mortgage data. The data generator sends `mortgage_applications` and `historical_payments` to **Kafka**, and `credit_score` data to **Postgres**.
 
 1. Open a new terminal window and navigate to the data-gen directory from the repo root:
    ```
    cd workshop-mortgage-underwriting-agentic-system/terraform/data-gen
    ```
-3. Run ShadowTraffic
+3. Run the data generator
 
    <details>
    <summary>Click to expand for MAC</summary>
@@ -146,10 +136,10 @@ Once the infrastructure is deployed, we can generate mortgage data. We'll use **
 
    </details>
 
-   > **Note:** Leave this terminal open all the time.
+> [!CAUTION]
+> **Do not stop the data generator.** It must run continuously to advance Flink watermarks. Stopping it will break the labs.
 
-
-   > **Note:** Shadow Traffic is configure to generate a new mortgage application every 10 mins.
+> **Note:** The data generator produces a new mortgage application every 10 minutes.
 
 5. To verify that the data has been successfully generated, go to the [Confluent Cloud Topic UI](https://confluent.cloud/go/topics). Select your environment and cluster, then click on the `payment_history` topic to confirm that data is being produced.
 
@@ -169,9 +159,9 @@ Submit a Mortgage application for `John Doe` - an applicant with high-credit-sco
    - **Loan Amount**: `150000`
    - **Annual Income:** `500000`
 
-   > NOTE: The name must be John Doe to match an existing applicant with a known high credit score.
-   >
-   > The loan amount must be less than or equal to the property value.
+> [!NOTE]
+> The name must be John Doe to match an existing applicant with a known high credit score.
+> The loan amount must be less than or equal to the property value.
 
    ![Architecture](./assets/demo1.png)
 

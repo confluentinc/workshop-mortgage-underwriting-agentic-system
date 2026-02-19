@@ -85,7 +85,13 @@ We will now enrich mortgage applications with credit score data. This will creat
 ![Architecture](./assets/lab1-table-hld.png)
 
 <details>
-<summary>Option A: Java Table API (requires Maven)</summary>
+<summary>Option A: Java Table API (requires Java 17 and Maven)</summary>
+
+Install Java 17 and Maven if not already installed:
+
+| | Mac | Windows |
+|---|---|---|
+| Install | `brew install openjdk@17 maven` | `winget install --id Microsoft.OpenJDK.17 -e && winget install --id Apache.Maven -e` |
 
 1. Open a new terminal window in the repository's root directory.
 
@@ -98,11 +104,11 @@ We will now enrich mortgage applications with credit score data. This will creat
    mvn clean package
    ```
 
-   > ⚠️ **Note**: If you encounter this error: `Caused by: java.lang.NoSuchMethodError: 'com.sun.tools.javac.tree.JCTree com.sun.tools.javac.tree.JCTree$JCImport.getQualifiedIdentifier()'` 
-   > 
+   > ⚠️ **Note**: If you encounter this error: `Caused by: java.lang.NoSuchMethodError: 'com.sun.tools.javac.tree.JCTree com.sun.tools.javac.tree.JCTree$JCImport.getQualifiedIdentifier()'`
+   >
    > Try running `mvn clean package -Dspotless.check.skip=true`
 
-4. Run the compiled application. To get the exact command, run`terraform output` from the Terraform directory. Look for the value of `Flink_exec_command.` The command should look like this:
+4. Run the compiled application. To get the exact command, run `terraform output` from the Terraform directory. Look for the value of `Flink_exec_command.` The command should look like this:
    ```
    java -jar target/flink-table-api-java-demo-0.1.jar '<Confluent_environment_name>' '<confluent_cluster_name>'
    ```
@@ -242,10 +248,9 @@ Then, we will perform a **temporal join** between `enriched_mortgage_application
    ```
 
 
-3. Join `enriched_mortgage_applications` with `applicant_payment_summary` and use TTL to manage Flink state.
+3. Perform a **temporal join** between `enriched_mortgage_applications` and `applicant_payment_summary`. This joins each mortgage application with the payment history as it existed at the time of the application.
 
    ```sql
-   SET 'sql.state-ttl' = '1 min';
    SET 'client.statement-name' = 'enriched-mortgage-payments-materializer';
    CREATE TABLE `enriched_mortgage_with_payments`
    WITH ('changelog.mode' = 'append')

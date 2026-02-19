@@ -1,6 +1,8 @@
 @echo off
 setlocal
 
+set IMAGE=ghcr.io/ahmedszamzam/datagen:latest
+
 set RUNTIME=
 where docker >nul 2>&1 && docker info >nul 2>&1 && set RUNTIME=docker
 if not defined RUNTIME (
@@ -11,19 +13,5 @@ if not defined RUNTIME (
     exit /b 1
 )
 
-%RUNTIME% run ^
-       --rm ^
-       --env-file free-trial-license-docker.env ^
-       --net=host ^
-       -v %cd%/root.json:/home/root.json ^
-       -v %cd%/generators:/home/generators ^
-       -v %cd%/connections:/home/connections ^
-       shadowtraffic/shadowtraffic:1.13.4 ^
-       --config /home/root.json
-
-if %ERRORLEVEL% neq 0 (
-    echo Command failed with error code %ERRORLEVEL%
-    exit /b %ERRORLEVEL%
-)
-
-echo Command completed successfully
+%RUNTIME% pull %IMAGE%
+%RUNTIME% run --rm --env-file .datagen.env %IMAGE%
