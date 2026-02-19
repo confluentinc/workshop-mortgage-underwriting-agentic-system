@@ -22,7 +22,7 @@ This Flink Streaming Agent evaluates each enriched application plus payment hist
    ```sql
    CREATE AGENT mortgage_risk_agent
    USING MODEL llm_textgen_model
-   USING PROMPT 'You are the Credit and Fraud Risk Analyst at River Banking. Your job is to assess the applicant’s creditworthiness and fraud risk using the provided application data and payment history, and produce a concise, structured JSON output for downstream automation.
+   USING PROMPT 'You are the Credit and Fraud Risk Analyst at River Banking. Your job is to assess the applicant's creditworthiness and fraud risk using the provided application data and payment history, and produce a concise, structured JSON output for downstream automation.
 
    # DECISION PRINCIPLES
    1. Be conservative on fraud: only flag high fraud risk if there are clear red flags.
@@ -48,12 +48,13 @@ This Flink Streaming Agent evaluates each enriched application plus payment hist
      - >50% → High risk
 
    # FRAUD RISK GUIDELINES
-   Evaluate fraud risk using patterns like:
-   - Inconsistent income vs loan amount
-   - High credit utilization + recent defaults
-   - Unusual payment history or high failure rate
-   - Any anomalies in applicant identity or payment history
-   Only mark fraud risk as high if there are multiple strong indicators.
+   Evaluate fraud risk using these patterns:
+   - High payment failure rate (>50% failed payments is a strong indicator)
+   - High credit utilization (>60%) combined with recent defaults (≥3)
+   - Debt-to-income ratio >100% with low credit score (<600)
+   A low loan-to-income ratio or low property value relative to income is NOT a fraud indicator — it simply means the applicant is borrowing conservatively.
+   A small number of payment records is NOT suspicious — it may indicate a new customer.
+   Only mark fraud risk as high (score >70) if there are multiple strong indicators from the list above.
 
    # OUTPUT REQUIREMENTS
    Return a JSON object with the following fields:
@@ -145,35 +146,22 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
 ![Architecture](./assets/lab2-agent2-hld.png)
 
 
-1. Create the Tools to be used by the agent. See [CREATE TOOL documentation](https://docs.confluent.io/cloud/current/flink/reference/statements/create-tool.html).
-
-   ```sql
-   CREATE TOOL zapier
-   USING CONNECTION `zapier-mcp-connection`
-   WITH (
-   'type' = 'mcp',
-   'allowed_tools' = 'gmail_send_email',
-   'request_timeout' = '30'
-   );
-   ```
-
-2. Create the `mortgage_decisions_agent` and bind the tools to it. See [CREATE AGENT documentation](https://docs.confluent.io/cloud/current/flink/reference/statements/create-agent.html#flink-sql-create-agent).
+1. Create the `mortgage_decisions_agent`. See [CREATE AGENT documentation](https://docs.confluent.io/cloud/current/flink/reference/statements/create-agent.html#flink-sql-create-agent).
 
    ```sql
    CREATE AGENT mortgage_decisions_agent
    USING MODEL llm_textgen_model
-   USING PROMPT 'You’re a Credit and Fraud Risk Analyst at River Banking, a leading financial institution specializing in personalized mortgage solutions. River Banking is committed to responsible lending and fraud prevention through advanced risk analysis and data-driven decision-making.
+   USING PROMPT 'You are a Credit and Fraud Risk Analyst at River Banking, a leading financial institution specializing in personalized mortgage solutions. River Banking is committed to responsible lending and fraud prevention through advanced risk analysis and data-driven decision-making.
 
-   Your role is to assess a mortgage applicant’s financial and risk profile to determine loan eligibility and recommend an appropriate interest rate. You will analyze key indicators such as verified income, credit score, and fraud score. Based on these inputs, you will evaluate the applicant’s ability to repay the loan, identify any potential red flags, and assign a risk category that will inform underwriting decisions.'
-   USING TOOLS zapier
-   COMMENT 'Consolidated agent for making mortgage desisions and generating mortgage offers or rejection letters'
+   Your role is to assess a mortgage applicant financial and risk profile to determine loan eligibility and recommend an appropriate interest rate. You will analyze key indicators such as verified income, credit score, and fraud score. Based on these inputs, you will evaluate the applicant ability to repay the loan, identify any potential red flags, and assign a risk category that will inform underwriting decisions.'
+   COMMENT 'Agent for making mortgage decisions and generating mortgage offers or rejection letters'
    WITH (
    'max_consecutive_failures' = '2',
-   'MAX_ITERATIONS' = '10'
+   'MAX_ITERATIONS' = '6'
    );
    ```
 
-6. **In the query below, replace <\<YOUR_EMAIL_ADDRESS_HERE\>> with your email** and then start Agent 2.
+2. Start Agent 2:
 
    ```sql
    SET 'client.statement-name' = 'mortgage-decisions-agent';
@@ -181,6 +169,7 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
    SELECT 
       m.application_id,
       m.applicant_id,
+      m.customer_email,
       m.borrower_name,
       m.property_state,
       m.loan_amount,
@@ -217,7 +206,7 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
          '- Debt-to-Income Ratio: Acceptable range is 1-600%. Ratios > 600% require strong compensating factors.\n',
          
          '## Risk Factors\n',
-         '- fraud_risk_score: Scores > 0.7 require additional scrutiny or rejection.\n',
+         '- fraud_risk_score: Scores > 70 require additional scrutiny or rejection.\n',
          '- loan_stack_risk: HIGH risk may lead to rejection or rate adjustment.\n',
          '- risk_category: Consider overall risk profile in final decision.\n\n',
          
@@ -229,6 +218,7 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
          '# APPLICANT DATA\n',
          'Application ID: ', m.application_id, '\n',
          'Applicant ID: ', m.applicant_id, '\n',
+         'Customer Email: ', m.customer_email, '\n',
          'Borrower Name: ', m.borrower_name, '\n',
          'Property: ', m.property_address, ', ', m.property_state, '\n',
          'Property Value: $', CAST(m.property_value AS STRING), '\n',
@@ -245,7 +235,7 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
          'You are an API that responds with JSON only. Do not include explanations, headers, or markdown formatting.\n\n',
          'Respond ONLY with a raw JSON object like this:\n',
          '{\n'
-         '"letter_body": (string) acceptace or rejection letter\n',
+         '"letter_body": (string) acceptance or rejection letter\n',
          '"decision": (enum) Either "Approved" or "Rejected"\n',
          '"final_interest_rate": (float) The suggested interest rate for the applicant if the application "decision" is Approved. If the application "decision" is "Rejected" suggest "-1" interest rate.  \n',
          '"explanation": (string) A brief narrative explaining the decision and interest rate logic\n',
@@ -280,14 +270,8 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
          'Email: mortgages@riverbanking.com\n\n',
          
          '---\n\n',
-         
-         '# EMAIL AUTOMATION\n',
-         'After generating the JSON output, call the gmail_send_email tool with:\n',
-         '- To: <<YOUR_EMAIL_ADDRESS_HERE>>\n',
-         '- Subject: Mortgage Decision - Application ', m.application_id, ' - ', m.borrower_name, '\n',
-         '- Body: Use the exact letter_body value from your JSON output\n\n',
-         
-         'REMEMBER: Output ONLY the JSON object. Do NOT include email fields in the JSON. Do NOT add any text before or after the JSON.'
+
+         'REMEMBER: Output ONLY the JSON object. Do NOT add any text before or after the JSON.'
       ),
          m.application_id,
          MAP['debug', 'true']

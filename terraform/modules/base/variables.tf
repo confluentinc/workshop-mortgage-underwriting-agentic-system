@@ -21,10 +21,6 @@ variable "domain_name" {
   default = "example.com"
 }
 
-variable "zapier_token" {
-  type = string
-}
-
 variable "db_host" {
   type = string
 }

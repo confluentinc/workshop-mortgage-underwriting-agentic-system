@@ -16,38 +16,42 @@ Before starting, make sure you have:
 | **Git CLI** | `brew install git` |
 | **AWS account** with credentials set | Set AWS env variables or run `aws configure` |
 | **Container runtime** (Docker Desktop, Colima, or Podman) | Install one runtime; Terraform auto-detects |
-| **Java 17+** | `brew install openjdk@17` |
-| **Maven 3.9.9+** | `brew install maven` |
-| **Zapier MCP token** | [Setup guide](./assets/Zapier-Setup.md) |
 
 
 
 <details>
 <summary>Installing prerequisites on MAC</summary>
 
-Install the prerequisites by running:
+1. Install dependencies:
+   ```bash
+   brew install git terraform awscli
+   ```
 
-```bash
-brew install git terraform awscli maven openjdk@17 && brew install --cask docker
-```
-
-> If you prefer Colima or Podman, install those separately. Terraform will auto-detect the runtime.
+2. Install a container runtime:
+   ```bash
+   brew install colima docker
+   # brew install --cask docker       # Docker Desktop
+   # brew install podman              # Podman
+   ```
 
 </details>
 
 <details>
 <summary>Installing prerequisites on Windows</summary>
 
-Install the prerequisites by running:
+1. Install dependencies:
+   ```powershell
+   winget install --id Git.Git -e
+   winget install --id Hashicorp.Terraform -e
+   winget install --id Amazon.AWSCLI -e
+   ```
 
-```powershell
-winget install --id Git.Git -e
-winget install --id Hashicorp.Terraform -e
-winget install --id Amazon.AWSCLI -e
-winget install --id Docker.DockerDesktop -e
-winget install --id Microsoft.OpenJDK.17 -e
-winget install --id Apache.Maven -e
-```
+2. Install a container runtime:
+   ```powershell
+   winget install --id Docker.DockerDesktop -e
+   # Alternatively, install Podman: winget install --id RedHat.Podman -e
+   ```
+
 </details>
 
 ## Bedrock model access
@@ -111,31 +115,22 @@ Provisioning may take 2-5 minutes.
 
    </details>
 
-3. In `terraform` directory, create a `terraform.tfvars` file to store the Confluent Cloud API keys required by Terraform. Replace the placeholders below with your own keys and `{your-email}` with your email.
-
-   <details>
-   <summary>Click to expand for Mac</summary>
-
+3. Rename the template file and update it with your values:
+   **Mac/Linux:**
    ```bash
-   cat > ./terraform.tfvars <<EOF
-   confluent_cloud_api_key = "CONFLUENT_CLOUD_API_KEY"
-   confluent_cloud_api_secret = "CONFLUENT_CLOUD_API_SECRET"
-   email = "YOUR_EMAIL"
-   zapier_token = "ZAPIER_TOKEN"
-   EOF
+   mv terraform.tfvars.example terraform.tfvars
    ```
-   </details>
-
-   <details>
-   <summary>Click to expand for Windows CMD</summary>
-
-   ```bash
-   echo confluent_cloud_api_key = "CONFLUENT_CLOUD_API_KEY" > terraform.tfvars
-   echo confluent_cloud_api_secret = "CONFLUENT_CLOUD_API_SECRET" >> terraform.tfvars
-   echo email = "YOUR_EMAIL" >> terraform.tfvars
-   echo zapier_token = "ZAPIER_TOKEN" >> terraform.tfvars
+   **Windows:**
+   ```cmd
+   ren terraform.tfvars.example terraform.tfvars
    ```
-   </details>
+   Open `terraform.tfvars` in your editor and replace the following placeholders:
+
+   | Variable | Where to get it |
+   |----------|----------------|
+   | `confluent_cloud_api_key` | Your Confluent Cloud API key |
+   | `confluent_cloud_api_secret` | Your Confluent Cloud API secret |
+   | `email` | Your email address |
 
 > [!CAUTION]
 > **Your container runtime must be running before deploying Terraform.**
@@ -164,13 +159,13 @@ Provisioning may take 2-5 minutes.
 > [!IMPORTANT]
 > Run this step in a different tab. Data gen needs to continously run.
 
-Once the infrastructure is deployed, we can generate mortgage data. We'll use **ShadowTraffic** to send `mortgage_applications` and `historical_payments` to **Kafka**, and `credit_score` data to **Postgres**.
+Once the infrastructure is deployed, we can generate mortgage data. The data generator sends `mortgage_applications` and `historical_payments` to **Kafka**, and `credit_score` data to **Postgres**.
 
 1. Open a new terminal window and navigate to the data-gen directory from the repo root:
    ```
    cd workshop-mortgage-underwriting-agentic-system/terraform/data-gen
    ```
-3. Run ShadowTraffic
+3. Run the data generator
 
    <details>
    <summary>Click to expand for MAC</summary>
@@ -190,10 +185,10 @@ Once the infrastructure is deployed, we can generate mortgage data. We'll use **
 
    </details>
 
-   > **Note:** Leave this terminal open all the time.
+> [!CAUTION]
+> **Do not stop the data generator.** It must run continuously to advance Flink watermarks. Stopping it will break the labs.
 
-
-   > **Note:** Shadow Traffic is configure to generate a new mortgage application every 10 mins.
+> **Note:** The data generator produces a new mortgage application every 10 minutes.
 
 5. To verify that the data has been successfully generated, go to the [Confluent Cloud Topic UI](https://confluent.cloud/go/topics). Select your environment and cluster, then click on the `payment_history` topic to confirm that data is being produced.
 
@@ -213,9 +208,9 @@ Submit a Mortgage application for `John Doe` - an applicant with high-credit-sco
    - **Loan Amount**: `150000`
    - **Annual Income:** `500000`
 
-   > NOTE: The name must be John Doe to match an existing applicant with a known high credit score.
-   >
-   > The loan amount must be less than or equal to the property value.
+> [!NOTE]
+> The name must be John Doe to match an existing applicant with a known high credit score.
+> The loan amount must be less than or equal to the property value.
 
    ![Architecture](./assets/demo1.png)
 

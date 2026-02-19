@@ -26,11 +26,6 @@ variable "domain_name" {
   default     = "example.com"
 }
 
-variable "zapier_token" {
-  description = "Zapier MCP token for Streamable HTTP connection"
-  type        = string
-}
-
 # --- Instructor-provided credentials ---
 
 variable "db_host" {

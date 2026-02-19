@@ -61,16 +61,27 @@ We will source credit score data from the instructor-provided Postgres DB to the
    - **Output Key and Value** as `AVRO`
    - **Topic prefix** as `PROD`
    - **Table include list** as `public.applicant_credit_score`
-   - In **advanced configurations** set **Decimal handling mode** to `double`
-5. Follow the wizard to create the connector.
-6. After a few minutes, the connector should be up and running. Data will begin flowing from Postgres to the `PROD.public.applicant_credit_score` topic.
+
+5. In **Database config**, update the Slot name and Publication name. Run `terraform output postgres_cdc_connector` to get your unique values:
+
+   | Field | Value |
+   |-------|-------|
+   | **Slot name** | `<your_db_name>_debezium` |
+   | **Publication name** | `<your_db_name>_dbz_publication` |
+
+> [!CAUTION]
+> **Workshop mode only:** You must set unique Slot name and Publication name. All workshop users share the same Postgres database. Using the default values will cause conflicts between connectors.
+
+6. In **advanced configurations**, set **Decimal handling mode** to `double`.
+7. Follow the wizard to create the connector.
+8. After a few minutes, the connector should be up and running. Data will begin flowing from Postgres to the `PROD.public.applicant_credit_score` topic.
 
 Finally, to prepare this topic for joining with `mortgage_applications`, we will set the changelog mode to `append` instead of `retract`.
 
-7. Navigate to [Flink UI](https://confluent.cloud/go/flink) in Confluent Cloud and select the demo environment.
-8. Click on **Open SQL Workspace**.
-9. On the top right corner of your workspace select the cluster as your database.
-10. Use the query editior to run the following query
+9. Navigate to [Flink UI](https://confluent.cloud/go/flink) in Confluent Cloud and select the demo environment.
+10. Click on **Open SQL Workspace**.
+11. On the top right corner of your workspace select the cluster as your database.
+12. Use the query editor to run the following query
 
    ```sql
    ALTER TABLE `PROD.public.applicant_credit_score` SET ('changelog.mode' = 'append' , 'value.format' = 'avro-registry');
@@ -85,7 +96,13 @@ We will now enrich mortgage applications with credit score data. This will creat
 ![Architecture](./assets/lab1-table-hld.png)
 
 <details>
-<summary>Option A: Java Table API (requires Maven)</summary>
+<summary>Option A: Java Table API (requires Java 17 and Maven)</summary>
+
+Install Java 17 and Maven if not already installed:
+
+| | Mac | Windows |
+|---|---|---|
+| Install | `brew install openjdk@17 maven` | `winget install --id Microsoft.OpenJDK.17 -e && winget install --id Apache.Maven -e` |
 
 1. Open a new terminal window in the repository's root directory.
 
@@ -98,11 +115,11 @@ We will now enrich mortgage applications with credit score data. This will creat
    mvn clean package
    ```
 
-   > ⚠️ **Note**: If you encounter this error: `Caused by: java.lang.NoSuchMethodError: 'com.sun.tools.javac.tree.JCTree com.sun.tools.javac.tree.JCTree$JCImport.getQualifiedIdentifier()'` 
-   > 
+   > ⚠️ **Note**: If you encounter this error: `Caused by: java.lang.NoSuchMethodError: 'com.sun.tools.javac.tree.JCTree com.sun.tools.javac.tree.JCTree$JCImport.getQualifiedIdentifier()'`
+   >
    > Try running `mvn clean package -Dspotless.check.skip=true`
 
-4. Run the compiled application. To get the exact command, run`terraform output` from the Terraform directory. Look for the value of `Flink_exec_command.` The command should look like this:
+4. Run the compiled application. To get the exact command, run `terraform output` from the Terraform directory. Look for the value of `Flink_exec_command.` The command should look like this:
    ```
    java -jar target/flink-table-api-java-demo-0.1.jar '<Confluent_environment_name>' '<confluent_cluster_name>'
    ```
@@ -242,10 +259,9 @@ Then, we will perform a **temporal join** between `enriched_mortgage_application
    ```
 
 
-3. Join `enriched_mortgage_applications` with `applicant_payment_summary` and use TTL to manage Flink state.
+3. Perform a **temporal join** between `enriched_mortgage_applications` and `applicant_payment_summary`. This joins each mortgage application with the payment history as it existed at the time of the application.
 
    ```sql
-   SET 'sql.state-ttl' = '1 min';
    SET 'client.statement-name' = 'enriched-mortgage-payments-materializer';
    CREATE TABLE `enriched_mortgage_with_payments`
    WITH ('changelog.mode' = 'append')

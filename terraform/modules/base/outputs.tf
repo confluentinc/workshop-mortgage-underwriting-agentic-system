@@ -44,66 +44,26 @@ output "postgres_cdc_connector" {
     database_username = var.db_username
     database_password = var.db_password
     database_name     = var.db_name
+    slot_name         = "${var.db_name}_debezium"
+    publication_name  = "${var.db_name}_dbz_publication"
   }
   sensitive = true
 }
 
-# Create ShadowTraffic Connection Files
-resource "local_file" "mortgage-applictation-kafka-json" {
-filename = "${path.root}/../data-gen/connections/mortgage-application-kafka.json"
+# Create data generator environment file
+resource "local_file" "datagen_env" {
+  filename = "${path.root}/../data-gen/.datagen.env"
   content  = <<-EOT
-{
-    "kind": "kafka",
-    "continueOnRuleException": true,
-    "producerConfigs": {
-        "bootstrap.servers" : "${confluent_kafka_cluster.standard.bootstrap_endpoint}",
-        "client.id": "mortgage-application-producer",
-        "basic.auth.user.info": "${confluent_api_key.app-manager-schema-registry-api-key.id}:${confluent_api_key.app-manager-schema-registry-api-key.secret}",
-        "schema.registry.url": "${data.confluent_schema_registry_cluster.sr-cluster.rest_endpoint}",
-        "basic.auth.credentials.source": "USER_INFO",
-        "key.serializer": "io.shadowtraffic.kafka.serdes.JsonSerializer",
-        "value.serializer": "io.confluent.kafka.serializers.KafkaAvroSerializer",
-        "sasl.jaas.config": "org.apache.kafka.common.security.plain.PlainLoginModule required username='${confluent_api_key.app-manager-kafka-api-key.id}' password='${confluent_api_key.app-manager-kafka-api-key.secret}';",
-        "sasl.mechanism": "PLAIN",
-        "security.protocol": "SASL_SSL"
-    }
-}
+KAFKA_BOOTSTRAP_SERVERS=${confluent_kafka_cluster.standard.bootstrap_endpoint}
+KAFKA_API_KEY=${confluent_api_key.app-manager-kafka-api-key.id}
+KAFKA_API_SECRET=${confluent_api_key.app-manager-kafka-api-key.secret}
+SCHEMA_REGISTRY_URL=${data.confluent_schema_registry_cluster.sr-cluster.rest_endpoint}
+SCHEMA_REGISTRY_API_KEY=${confluent_api_key.app-manager-schema-registry-api-key.id}
+SCHEMA_REGISTRY_API_SECRET=${confluent_api_key.app-manager-schema-registry-api-key.secret}
+PG_HOST=${var.db_host}
+PG_PORT=${var.db_port}
+PG_DATABASE=${var.db_name}
+PG_USERNAME=${var.db_username}
+PG_PASSWORD=${var.db_password}
   EOT
-  }
-
-resource "local_file" "payments-kafka-json" {
-filename = "${path.root}/../data-gen/connections/payments-kafka.json"
-  content  = <<-EOT
-{
-    "kind": "kafka",
-    "continueOnRuleException": true,
-    "producerConfigs": {
-        "bootstrap.servers" : "${confluent_kafka_cluster.standard.bootstrap_endpoint}",
-        "client.id": "historical-payments-producer",
-        "basic.auth.user.info": "${confluent_api_key.app-manager-schema-registry-api-key.id}:${confluent_api_key.app-manager-schema-registry-api-key.secret}",
-        "schema.registry.url": "${data.confluent_schema_registry_cluster.sr-cluster.rest_endpoint}",
-        "basic.auth.credentials.source": "USER_INFO",
-        "key.serializer": "io.shadowtraffic.kafka.serdes.JsonSerializer",
-        "value.serializer": "io.confluent.kafka.serializers.KafkaAvroSerializer",
-        "sasl.jaas.config": "org.apache.kafka.common.security.plain.PlainLoginModule required username='${confluent_api_key.app-manager-kafka-api-key.id}' password='${confluent_api_key.app-manager-kafka-api-key.secret}';",
-        "sasl.mechanism": "PLAIN",
-        "security.protocol": "SASL_SSL"
-    }
-}
-  EOT
-  }
-
-resource "local_file" "postgres-json" {
-  filename = "${path.root}/../data-gen/connections/postgres.json"
-  content  = jsonencode({
-    kind        = "postgres"
-    tablePolicy = "create"
-    connectionConfigs = {
-      host     = var.db_host
-      port     = var.db_port
-      username = var.db_username
-      password = var.db_password
-      db       = var.db_name
-    }
-  })
 }
