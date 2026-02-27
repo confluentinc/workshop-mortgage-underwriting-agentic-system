@@ -301,7 +301,8 @@ Then, we will perform a **temporal join** between `enriched_mortgage_application
    ```sql
    SELECT * FROM enriched_mortgage_with_payments
    ```
-   > ⚠️ **Note**: It may take upto 2 mins for the data to appear in Flink UI.
+> [!NOTE]
+> It may take up to 2 minutes for data to appear. The temporal join emits results once the payment history source table advances the watermark past the mortgage application timestamp. A new payment is received every 15-30 seconds.
 
    > ⚠️ **Note**:: Some applicants will not have any historical payments.
 
