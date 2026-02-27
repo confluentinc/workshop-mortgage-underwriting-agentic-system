@@ -30,6 +30,11 @@ variable "mcp_token" {
   sensitive = true
 }
 
+variable "mcp_transport_type" {
+  type    = string
+  default = "STREAMABLE_HTTP"
+}
+
 variable "db_host" {
   type = string
 }
