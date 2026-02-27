@@ -16,6 +16,7 @@ Before starting, make sure you have:
 | **Git CLI** | `brew install git` |
 | **AWS account** with credentials set | Set AWS env variables or run `aws configure` |
 | **Container runtime** (Docker Desktop, Colima, or Podman) | Install one runtime; Terraform auto-detects |
+| **Zapier MCP token** | [Setup guide](./assets/Zapier-Setup.md) |
 
 
 
@@ -131,6 +132,7 @@ Provisioning may take 2-5 minutes.
    | `confluent_cloud_api_key` | Your Confluent Cloud API key |
    | `confluent_cloud_api_secret` | Your Confluent Cloud API secret |
    | `email` | Your email address |
+   | `zapier_token` | From [Zapier MCP setup](./assets/Zapier-Setup.md) |
 
 > [!CAUTION]
 > **Your container runtime must be running before deploying Terraform.**

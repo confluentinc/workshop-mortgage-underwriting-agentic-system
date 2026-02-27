@@ -22,7 +22,7 @@ This Flink Streaming Agent evaluates each enriched application plus payment hist
    ```sql
    CREATE AGENT mortgage_risk_agent
    USING MODEL llm_textgen_model
-   USING PROMPT 'You are the Credit and Fraud Risk Analyst at River Banking. Your job is to assess the applicant’s creditworthiness and fraud risk using the provided application data and payment history, and produce a concise, structured JSON output for downstream automation.
+   USING PROMPT 'You are the Credit and Fraud Risk Analyst at River Banking. Your job is to assess the applicant's creditworthiness and fraud risk using the provided application data and payment history, and produce a concise, structured JSON output for downstream automation.
 
    # DECISION PRINCIPLES
    1. Be conservative on fraud: only flag high fraud risk if there are clear red flags.
@@ -163,9 +163,9 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
    ```sql
    CREATE AGENT mortgage_decisions_agent
    USING MODEL llm_textgen_model
-   USING PROMPT 'You’re a Credit and Fraud Risk Analyst at River Banking, a leading financial institution specializing in personalized mortgage solutions. River Banking is committed to responsible lending and fraud prevention through advanced risk analysis and data-driven decision-making.
+   USING PROMPT 'You're a Credit and Fraud Risk Analyst at River Banking, a leading financial institution specializing in personalized mortgage solutions. River Banking is committed to responsible lending and fraud prevention through advanced risk analysis and data-driven decision-making.
 
-   Your role is to assess a mortgage applicant’s financial and risk profile to determine loan eligibility and recommend an appropriate interest rate. You will analyze key indicators such as verified income, credit score, and fraud score. Based on these inputs, you will evaluate the applicant’s ability to repay the loan, identify any potential red flags, and assign a risk category that will inform underwriting decisions.'
+   Your role is to assess a mortgage applicant's financial and risk profile to determine loan eligibility and recommend an appropriate interest rate. You will analyze key indicators such as verified income, credit score, and fraud score. Based on these inputs, you will evaluate the applicant's ability to repay the loan, identify any potential red flags, and assign a risk category that will inform underwriting decisions.'
    USING TOOLS send_email
    COMMENT 'Consolidated agent for making mortgage desisions and generating mortgage offers or rejection letters'
    WITH (
@@ -185,6 +185,7 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
    SELECT 
       m.application_id,
       m.applicant_id,
+      m.customer_email,
       m.borrower_name,
       m.property_state,
       m.loan_amount,
@@ -233,6 +234,7 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
          '# APPLICANT DATA\n',
          'Application ID: ', m.application_id, '\n',
          'Applicant ID: ', m.applicant_id, '\n',
+         'Customer Email: ', m.customer_email, '\n',
          'Borrower Name: ', m.borrower_name, '\n',
          'Property: ', m.property_address, ', ', m.property_state, '\n',
          'Property Value: $', CAST(m.property_value AS STRING), '\n',
