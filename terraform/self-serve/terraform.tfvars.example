@@ -1,3 +1,5 @@
 confluent_cloud_api_key    = "CONFLUENT_CLOUD_API_KEY"
 confluent_cloud_api_secret = "CONFLUENT_CLOUD_API_SECRET"
 email                      = "YOUR_EMAIL"
+mode                       = "self-serve"
+zapier_token               = "ZAPIER_TOKEN"

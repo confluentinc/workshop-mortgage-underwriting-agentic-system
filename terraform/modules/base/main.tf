@@ -270,6 +270,88 @@ resource "confluent_kafka_acl" "app-manager-read-on-group" {
 
 
 # ------------------------------------------------------
+# MCP Connection
+# ------------------------------------------------------
+
+# Drop existing MCP connection to allow recreation
+resource "confluent_flink_statement" "mcp_connection_drop" {
+
+  organization {
+    id = data.confluent_organization.confluent_org.id
+  }
+  environment {
+    id = confluent_environment.staging.id
+  }
+  compute_pool {
+    id = confluent_flink_compute_pool.flinkpool-main.id
+  }
+  principal {
+    id = confluent_service_account.app-manager.id
+  }
+  rest_endpoint = data.confluent_flink_region.demo_flink_region.rest_endpoint
+  credentials {
+    key    = confluent_api_key.app-manager-flink-api-key.id
+    secret = confluent_api_key.app-manager-flink-api-key.secret
+  }
+
+  statement_name = "mcp-connection-drop"
+
+  statement = <<-EOT
+    DROP CONNECTION IF EXISTS `${confluent_environment.staging.display_name}`.`${confluent_kafka_cluster.standard.display_name}`.`mcp_connection`;
+  EOT
+
+  properties = {
+    "sql.current-catalog"  = confluent_environment.staging.display_name
+    "sql.current-database" = confluent_kafka_cluster.standard.display_name
+  }
+}
+
+resource "confluent_flink_statement" "mcp_connection" {
+
+  organization {
+    id = data.confluent_organization.confluent_org.id
+  }
+  environment {
+    id = confluent_environment.staging.id
+  }
+  compute_pool {
+    id = confluent_flink_compute_pool.flinkpool-main.id
+  }
+  principal {
+    id = confluent_service_account.app-manager.id
+  }
+  rest_endpoint = data.confluent_flink_region.demo_flink_region.rest_endpoint
+  credentials {
+    key    = confluent_api_key.app-manager-flink-api-key.id
+    secret = confluent_api_key.app-manager-flink-api-key.secret
+  }
+
+  statement_name = "mcp-connection-create"
+
+  statement = <<-EOT
+    CREATE CONNECTION `${confluent_environment.staging.display_name}`.`${confluent_kafka_cluster.standard.display_name}`.`mcp_connection`
+    WITH (
+      'type' = 'mcp_server',
+      'endpoint' = '${var.mode == "workshop" ? var.mcp_url : "https://mcp.zapier.com/api/v1/connect"}',
+      'token' = '${var.mode == "workshop" ? var.mcp_token : var.zapier_token}'
+    );
+  EOT
+
+  properties = {
+    "sql.current-catalog"  = confluent_environment.staging.display_name
+    "sql.current-database" = confluent_kafka_cluster.standard.display_name
+  }
+
+  depends_on = [
+    confluent_flink_statement.mcp_connection_drop
+  ]
+
+  lifecycle {
+    ignore_changes = [statement]
+  }
+}
+
+# ------------------------------------------------------
 # LLM Connections and Models
 # ------------------------------------------------------
 

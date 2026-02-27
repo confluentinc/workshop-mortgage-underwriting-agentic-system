@@ -19,6 +19,9 @@ module "base" {
   prefix                     = var.prefix
   cloud_region               = var.cloud_region
   domain_name                = var.domain_name
+  mode                       = var.mode
+  mcp_url                    = var.mcp_url
+  mcp_token                  = var.mcp_token
   db_host                    = var.db_host
   db_port                    = var.db_port
   db_name                    = var.db_name

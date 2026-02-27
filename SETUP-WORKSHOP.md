@@ -75,6 +75,8 @@ Before starting, make sure you have:
    |----------|----------------|
    | `confluent_cloud_api_key` | Your Confluent Cloud API key |
    | `confluent_cloud_api_secret` | Your Confluent Cloud API secret |
+   | `mcp_url` | Provided by your instructor |
+   | `mcp_token` | Provided by your instructor |
    | `bedrock_access_key_id` | Provided by your instructor |
    | `bedrock_secret_access_key` | Provided by your instructor |
    | `db_host` | Provided by your instructor |
