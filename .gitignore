@@ -27,6 +27,8 @@
 **/.env
 **/.env.local
 **/.env.*.local
+**/.webapp.env
+**/.datagen.env
 **/*.pem
 **/*.key
 **/*.cert
@@ -37,11 +39,10 @@
 **/terraform.tfstate.backup
 **/.terraform.lock.hcl
 **/terraform/data-gen/connections/*.json
+**/.datagen.env
 **/prod.properties
 **/client.properties
-**/mortgage-application-kafka.json
 **/oracle.json
-**/payments-kafka.json
 
 
 

@@ -1,64 +1,142 @@
 
 # Building AI Agents to Process Mortgage Applications
 
-In this lab, we will use AI agents powered by a **Claude model running on Amazon Bedrock** to process real-time, contextualized mortgage applications. We'll build three AI agents, each responsible for a different stage of the mortgage decision workflow:
+In this lab, we will use AI agents powered by a **Claude model running on Amazon Bedrock** to process real-time, contextualized mortgage applications. We'll build two AI agents, each responsible for a different stage of the mortgage decision workflow:
 
-- **Agent 1:** Runs on AWS Lambda and performs fraud detection and credit risk assessment.
+- **Agent 1:** Runs as a Flink Streaming Agent and performs fraud detection and credit risk assessment.
 - **Agent 2:** Runs on Flink SQL and makes the actual mortgage decision, including interest rate recommendation. It also generates acceptance/rejection letters based on the decision.
 
 By the end of this lab, the entire mortgage application process will be fully automated using [Confluent Streaming Agents](https://www.confluent.io/product/streaming-agents/).
 
 ![Architecture](./assets/HLD.png)
 
-## **Agent 1: Fraud and Credit Risk Assesment**
+## **Agent 1: Fraud and Credit Risk Assessment (Flink Streaming Agent)**
 
-![Architecture](./assets/lab2-lambda-hld.png)
+This Flink Streaming Agent evaluates each enriched application plus payment history, assigns fraud and credit risk signals, and writes a validated record to `mortgage_validated_apps` for downstream decisioning.
 
-This agent runs on AWS Lambda, so we will use the fully managed Lambda Sink Connector to stream data from `enriched_mortgage_with_payments` topic that we created in the previous lab directly to the Lambda function in realtime.
+![Architecture](./assets/lab2-agent1-hld.png)
 
-1. In the [Connectors UI](https://confluent.cloud/go/connectors), you should have an Oracle XStream CDC Source Connector running. Click **+ Add Connector**. Then choose, **AWS Lambda Sink**.
-2. Choose `enriched_mortgage_with_payments` topic.
+1. In [Flink UI](https://confluent.cloud/go/flink), open a SQL workspace.
+2. Create the agent:
 
-   ![Screenshot](./assets/lab2-lambdasink1.png)
+   ```sql
+   CREATE AGENT mortgage_risk_agent
+   USING MODEL llm_textgen_model
+   USING PROMPT 'You are the Credit and Fraud Risk Analyst at River Banking. Your job is to assess the applicant creditworthiness and fraud risk using the provided application data and payment history, and produce a concise, structured JSON output for downstream automation.
 
-3. Enter your Confluent Cluster credentials, select **Service Account**, then choose **Existing Account**. From the drop-down menu, select the service account that was created for you by Terraform. The service account name should follow this format: `<prefix>-app-manager-<random_suffix>`.
+   # DECISION PRINCIPLES
+   1. Be conservative on fraud: only flag high fraud risk if there are clear red flags.
+   2. Credit risk should be based on credit score, utilization, open accounts, recent defaults, and debt-to-income ratio.
+   3. Always return JSON only — no extra text.
 
-   ![Screenshot](./assets/lab2-lambdasink2.png)
+   # CREDIT RISK GUIDELINES
+   - Credit Score:
+     - 750+ → Low credit risk
+     - 600–749 → Moderate credit risk
+     - <600 → High credit risk
+   - Credit Utilization:
+     - ≤30% → Healthy
+     - 31–60% → Elevated
+     - >60% → High risk
+   - Recent Defaults:
+     - 0 → Favorable
+     - 1–2 → Moderate risk
+     - ≥3 → High risk
+   - Debt-to-Income Ratio:
+     - ≤35% → Low risk
+     - 36–50% → Moderate risk
+     - >50% → High risk
 
-4.  Enter Lambda details - Run ```terraform output lambda_connector``` from `terraform` directory to get the details. Output should look as follows:
-   ![Screenshot](./assets/lab2-lambdasink3.png)
+   # FRAUD RISK GUIDELINES
+   Evaluate fraud risk using these patterns:
+   - High payment failure rate (>50% failed payments is a strong indicator)
+   - High credit utilization (>60%) combined with recent defaults (≥3)
+   - Debt-to-income ratio >100% with low credit score (<600)
+   A low loan-to-income ratio or low property value relative to income is NOT a fraud indicator — it simply means the applicant is borrowing conservatively.
+   A small number of payment records is NOT suspicious — it may indicate a new customer.
+   Only mark fraud risk as high (score >70) if there are multiple strong indicators from the list above.
 
-      - After you enter the details, click **Continue**
+   # OUTPUT REQUIREMENTS
+   Return a JSON object with the following fields:
+   - fraud_risk_score: number 0–100
+   - loan_stack_risk: "Low" | "Moderate" | "High"
+   - risk_category: "Low" | "Moderate" | "High"
+   - agent_reasoning: 1–3 sentences summarizing key factors
 
-      >NOTE: If you encounter `"Invalid Credentials! Please check the credentials provided."`, just click `Continue` again. 
+   # OUTPUT FORMAT
+   Respond ONLY with JSON. Example:
+   {
+     "fraud_risk_score": 12.0,
+     "loan_stack_risk": "Low",
+     "risk_category": "Moderate",
+     "agent_reasoning": "Credit score is mid-range with elevated utilization, but payment history is stable. No strong fraud indicators detected."
+   }'
+   COMMENT 'Credit + fraud risk assessment agent'
+   WITH (
+     'max_consecutive_failures' = '2',
+     'MAX_ITERATIONS' = '6'
+   );
+   ```
 
+3. Create the output table using CTAS:
 
-5. For Configuration, choose:
+   ```sql
+   SET 'client.statement-name' = 'mortgage-risk-agent';
+   CREATE TABLE mortgage_validated_apps AS
+   SELECT
+      m.application_id,
+      m.applicant_id,
+      m.customer_email,
+      m.borrower_name,
+      m.income,
+      m.payslips,
+      m.loan_amount,
+      m.property_address,
+      m.property_state,
+      m.property_value,
+      m.employment_status,
+      m.credit_score,
+      m.credit_utilization,
+      m.debt_to_income_ratio,
+      CAST(JSON_VALUE(agent_result.response, '$.fraud_risk_score') AS DOUBLE) AS fraud_risk_score,
+      JSON_VALUE(agent_result.response, '$.loan_stack_risk') AS loan_stack_risk,
+      JSON_VALUE(agent_result.response, '$.risk_category') AS risk_category,
+      JSON_VALUE(agent_result.response, '$.agent_reasoning') AS agent_reasoning,
+      m.application_ts
+      FROM enriched_mortgage_with_payments m,
+      LATERAL TABLE(
+      AI_RUN_AGENT(
+         'mortgage_risk_agent',
+         CONCAT(
+            '# ROLE\n',
+            'You are the Credit and Fraud Risk Analyst at River Banking.\n\n',
+            '# INPUT DATA\n',
+            'Application ID: ', m.application_id, '\n',
+            'Applicant ID: ', m.applicant_id, '\n',
+            'Borrower Name: ', m.borrower_name, '\n',
+            'Annual Income: $', CAST(m.income AS STRING), '\n',
+            'Loan Amount: $', CAST(m.loan_amount AS STRING), '\n',
+            'Credit Score: ', CAST(m.credit_score AS STRING), '\n',
+            'Credit Utilization: ', CAST(m.credit_utilization AS STRING), '%\n',
+            'Debt-to-Income: ', CAST(m.debt_to_income_ratio AS STRING), '%\n',
+            'Recent Defaults: ', CAST(m.recent_defaults AS STRING), '\n',
+            'Payment History: ', COALESCE(CAST(m.payment_history AS STRING), ''), '\n\n',
+            'Return JSON only using the required output format.'
+         ),
+         MAP['debug', true]
+      )
+      ) AS agent_result;
+   ```
 
-   - `AVRO` as input value format
-   - In **advanced configurations** set:
-      - **Invocation Type** to `async`.
-      - **Batch size** to `1`.
-      - **Socket Timeout** to `600000`.
+> [!IMPORTANT]
+> This query should run continuously and **must not be stopped or deleted**.  
+> Add new cells **above or below** this one before proceeding.
 
-   ![Screenshot](./assets/lab2-lambdasink4.png)
+4. Verify output:
 
-   - Click **Continue**
-
-6. Follow the wizard to create the connector.
-
-7. After a few minutes, the connector should be up and running. Data will begin flowing to the Lambda Function.
-
- To verify that the connector is working properly, in the Flink workspace, run this and check the risk scores for all application. 
-
- ```sql
- SELECT * FROM mortgage_validated_apps
- ```
- Checkout the `agent_reasoning` for John.
-
-> ⚠️ **Note:** If you're using **AWS Workshop Studio**, be aware that **Bedrock service limits are reduced** for security reasons. As a result, some requests may be throttled.  
->  
-> **Important:** The provided Lambda function does **not** include a retry mechanism, so throttled requests may be lost during the workshop. In a production environment, you should implement a robust retry strategy to handle such cases gracefully.
+   ```sql
+   SELECT * FROM mortgage_validated_apps;
+   ```
 
 
  ## **Agent 2: Combined Mortgage Decision and Letter**
@@ -71,8 +149,8 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
 1. Create the Tools to be used by the agent. See [CREATE TOOL documentation](https://docs.confluent.io/cloud/current/flink/reference/statements/create-tool.html).
 
    ```sql
-   CREATE TOOL zapier
-   USING CONNECTION `zapier-mcp-connection`
+   CREATE TOOL send_email
+   USING CONNECTION `mcp_connection`
    WITH (
    'type' = 'mcp',
    'allowed_tools' = 'gmail_send_email',
@@ -85,22 +163,21 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
    ```sql
    CREATE AGENT mortgage_decisions_agent
    USING MODEL llm_textgen_model
-   USING PROMPT 'You’re a Credit and Fraud Risk Analyst at River Banking, a leading financial institution specializing in personalized mortgage solutions. River Banking is committed to responsible lending and fraud prevention through advanced risk analysis and data-driven decision-making.
+   USING PROMPT 'You are a Credit and Fraud Risk Analyst at River Banking, a leading financial institution specializing in personalized mortgage solutions. River Banking is committed to responsible lending and fraud prevention through advanced risk analysis and data-driven decision-making.
 
-   Your role is to assess a mortgage applicant’s financial and risk profile to determine loan eligibility and recommend an appropriate interest rate. You will analyze key indicators such as verified income, credit score, and fraud score. Based on these inputs, you will evaluate the applicant’s ability to repay the loan, identify any potential red flags, and assign a risk category that will inform underwriting decisions.'
-   USING TOOLS zapier
-   COMMENT 'Consolidated agent for making mortgage desisions and generating mortgage offers or rejection letters'
+   Your role is to assess a mortgage applicant financial and risk profile to determine loan eligibility and recommend an appropriate interest rate. You will analyze key indicators such as verified income, credit score, and fraud score. Based on these inputs, you will evaluate the applicant ability to repay the loan, identify any potential red flags, and assign a risk category that will inform underwriting decisions.'
+   USING TOOLS send_email
+   COMMENT 'Agent for making mortgage decisions and generating mortgage offers or rejection letters'
    WITH (
    'max_consecutive_failures' = '2',
    'MAX_ITERATIONS' = '10'
    );
    ```
 
-6. **In the query below, replace <\<YOUR_EMAIL_ADDRESS_HERE\>> with your email** and then start Agent 2.
+6. **In the query below, replace `<<YOUR_EMAIL_ADDRESS_HERE>>` with your email** and then start Agent 2.
 
-   > ⚠️ **Note:** If you're using **AWS Workshop Studio**, be aware that **Bedrock service limits are reduced** for security reasons. As a result, some requests may be throttled.  
-   >  
-   > **Important:** The Flink job may fail if the message backlog exceeds **6 messages**, due to the current **Bedrock limit of 6 requests per minute** in AWS Workshop Studio.
+> [!WARNING]
+> You **must** replace `<<YOUR_EMAIL_ADDRESS_HERE>>` with your actual email address in the query below. If you skip this step, you will not receive the mortgage decision email.
 
    ```sql
    SET 'client.statement-name' = 'mortgage-decisions-agent';
@@ -108,6 +185,7 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
    SELECT 
       m.application_id,
       m.applicant_id,
+      m.customer_email,
       m.borrower_name,
       m.property_state,
       m.loan_amount,
@@ -144,7 +222,7 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
          '- Debt-to-Income Ratio: Acceptable range is 1-600%. Ratios > 600% require strong compensating factors.\n',
          
          '## Risk Factors\n',
-         '- fraud_risk_score: Scores > 0.7 require additional scrutiny or rejection.\n',
+         '- fraud_risk_score: Scores > 70 require additional scrutiny or rejection.\n',
          '- loan_stack_risk: HIGH risk may lead to rejection or rate adjustment.\n',
          '- risk_category: Consider overall risk profile in final decision.\n\n',
          
@@ -156,6 +234,7 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
          '# APPLICANT DATA\n',
          'Application ID: ', m.application_id, '\n',
          'Applicant ID: ', m.applicant_id, '\n',
+         'Customer Email: ', m.customer_email, '\n',
          'Borrower Name: ', m.borrower_name, '\n',
          'Property: ', m.property_address, ', ', m.property_state, '\n',
          'Property Value: $', CAST(m.property_value AS STRING), '\n',
@@ -222,9 +301,9 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
    ) AS agent_result(status, response);
    ```
 
-   > **Note:** This query should run continuously and **must not be stopped or deleted**.  
-   > Add new cells **above or below** this one before proceeding.  
-   > You should now have **three cells** with queries running continuously. Two from the previous lab and this one.
+> [!IMPORTANT]
+> This query should run continuously and **must not be stopped or deleted**.  
+> Add new cells **above or below** this one before proceeding.
 
 
 7. In a new cell, check the output of `mortgage_decisions`
@@ -242,7 +321,7 @@ We now have mortgage decisions and offers/rejection letters sent to the email yo
 
 ## Topics
 
-**Next topic:** [Demo](../Demo/demo-README.md)
+**Next topic:** [Demo](../Demo/demo-README.md) | [Clean-up](../README.md#clean-up)
 
 **Previous topic:** [Lab 1 - Connecting and pre-processing mortgage applications](../lab1/lab1-README.md)
 

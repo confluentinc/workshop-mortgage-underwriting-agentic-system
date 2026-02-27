@@ -2,7 +2,7 @@
 
 Now that we fully automated the mortgage application process. Let's demo this end to end. 
 
-![Architecture](../assets/HLD.png)
+![Architecture](../../assets/HLD.png)
 
 ## Prerequisites
 
@@ -12,18 +12,7 @@ Before starting this demo, make sure you have completed [**Lab 1 – Connecting 
 
 We already submitted a mortgage appliaction for `John Doe` a high credit score applicant. Follow the steps below to submit a mortgage application for a low-credit score customer.
 
-1. Navigate to your Terraform directory and run:
-   ```bash
-   terraform output
-   ```
-
-   Look for the value of `webapp_endpoint`. It should look like this:
-
-   ```
-   agentic-webapp-c4e83e7c-583734374.us-east-2.elb.amazonaws.com
-   ```
-
-2. Open the URL in your browser.
+1. Open http://localhost:5001 in your browser.
 3. Submit a new application using the following details:
 
 

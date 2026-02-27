@@ -1,11 +1,11 @@
 # Connecting and Pre-processing Mortgage Applications
 
-In this lab, we will source credit score data from Oracle DB using the fully managed **Oracle CDC XStream connector**. Then, we'll use **Confluent Cloud for Apache Flink** to enrich mortgage applications with credit score data from Oracle and historical payment data.
+In this lab, we will source credit score data from an instructor-provided Postgres DB using the fully managed **Postgres CDC Source connector**. Then, we'll use **Confluent Cloud for Apache Flink** to enrich mortgage applications with credit score data from Postgres and historical payment data.
 
 By the end of this lab, we will have built a real-time, contextualized data product that will be used to power AI agents in the next lab.
 
 ### Steps:
-1. Use the **Oracle XStream connector** to send credit score data from Oracle to the `APPLICANT_CREDIT_SCORE` topic in Confluent Cloud.
+1. Use the **Postgres CDC Source connector** to send credit score data from Postgres to the `APPLICANT_CREDIT_SCORE` topic in Confluent Cloud.
 2. Use the **Flink Java Table API** to join `mortgage_applications` with `APPLICANT_CREDIT_SCORE`, creating a new enriched real-time data product called `enriched_mortgage_applications`.
 3. Use **Flink SQL** to join `enriched_mortgage_applications` with `payment_history`, resulting in the final real-time data product that will be used in the next lab.
 
@@ -31,66 +31,78 @@ The rules were already created by Terraform, there is no need to do anything her
    ![Data Quality Rule](./assets/lab1-msgdlq.png)
 
 
-## **Setting up the Fully managed Oracle XStream CDC Source Premium Connector**
+## **Setting up the Fully managed Postgres CDC Source Connector**
 
-![Architecture](./assets/lab1-oracle-hld.png)
+We will source credit score data from the instructor-provided Postgres DB to the `PROD.public.applicant_credit_score` topic in Confluent.
 
-We will source Credit Score data from the Oracle DB to `PROD.SAMPLE.APPLICANT_CREDIT_SCORE` topic in Confluent.
+![Architecture](./assets/lab1-db-hld.png)
 
-1. In the [Connectors UI](https://confluent.cloud/go/connectors), add a new **Oracle XStream CDC Source Premium** Connector.
-2.   Enter your Confluent Cluster credentials, select **Service Account**, then choose **Existing Account**. From the drop-down menu, select the service account that was created for you by Terraform. The service account name should follow this format: `<prefix>-app-manager-<random_suffix>`.
-![Oracle Connector Screenshot](./assets/lab1-oracle-connector1.png)
+1. In the [Connectors UI](https://confluent.cloud/go/connectors), add a new **Postgres CDC Source V2 (Debezium)** connector.
+2. Configure the Kafka credentials:
+   - Select **Service Account** → **Existing Account**
+   - From the drop-down, select the service account created by Terraform (format: `<prefix>-app-manager-<random_suffix>`)
+   - Check **Add all required ACLs**
+   - Click **Continue**
+3. Enter the Postgres connection details, then click **Continue**.
 
-   Also, check **Add all required ACLs** checkbox. Then click **Continue**.
+   Run `terraform output postgres_cdc_connector` to get the values for hostname, database name, and password. Use the following format:
 
-3.  Enter Oracle details - Run ```terraform output oracle_xstream_connector``` from `terraform` directory to get the details. Output should look as follows:
-   ![Oracle Connector Screenshot](./assets/lab1-oracle-connector2.png)
+   | Field | Value |
+   |-------|-------|
+   | **Database hostname** | _from terraform output_ |
+   | **Database name** | _from terraform output_ |
+   | **Database port** | `5432` |
+   | **Database username** | `postgres` |
+   | **Database password** | _from terraform output_ |
 
-   After you enter the details, click **Continue**
-
+   <img src="./assets/lab1-pgsql-auth.png" width="500">
 
 4. For Configuration enter the following:
    - **Output Key and Value** as `AVRO`
    - **Topic prefix** as `PROD`
-   - **Table include list** as `SAMPLE.*`
-      >NOTE: this has to be sample otherwise connector will not find the data.
-   
-   ![Oracle Connector Screenshot](./assets/lab1-oracle-connector3.png)
+   - **Table include list** as `public.applicant_credit_score`
 
-   - In **advanced configurations** set **Decimal handling mode** to `double`.
-   ![Oracle Connector Screenshot](./assets/lab1-oracle-connector4.png)
+5. In **Database config**, update the Slot name and Publication name. Run `terraform output postgres_cdc_connector` to get your unique values:
 
-   - Click **Continue**
+   | Field | Value |
+   |-------|-------|
+   | **Slot name** | `<your_db_name>_debezium` |
+   | **Publication name** | `<your_db_name>_dbz_publication` |
 
+> [!CAUTION]
+> **Workshop mode only:** You must set unique Slot name and Publication name. All workshop users share the same Postgres database. Using the default values will cause conflicts between connectors.
 
-5. Follow the wizard to create the connector.
-
-
-6. After a few minutes, the connector should be up and running. Data will begin flowing from the Oracle DB to the `PROD.SAMPLE.APPLICANT_CREDIT_SCORE` topic.
-
-   To verify that the connector is working properly, go to the [Confluent Topic UI](https://confluent.cloud/go/topics), select your environment and cluster, then open the `PROD.SAMPLE.APPLICANT_CREDIT_SCORE` topic to view the incoming messages.
-
-   ![Oracle Connector Screenshot](./assets/lab1-oracle-connector5.png)
-
+6. In **advanced configurations**, set **Decimal handling mode** to `double`.
+7. Follow the wizard to create the connector.
+8. After a few minutes, the connector should be up and running. Data will begin flowing from Postgres to the `PROD.public.applicant_credit_score` topic.
 
 Finally, to prepare this topic for joining with `mortgage_applications`, we will set the changelog mode to `append` instead of `retract`.
 
-7. Navigate to [Flink UI](https://confluent.cloud/go/flink) in Confluent Cloud and select the demo environment.
-8. Click on **Open SQL Workspace**.
-9. On the top right corner of your workspace select the cluster as your database.
-10. Use the query editior to run the following query
+9. Navigate to [Flink UI](https://confluent.cloud/go/flink) in Confluent Cloud and select the demo environment.
+10. Click on **Open SQL Workspace**.
+11. On the top right corner of your workspace select the cluster as your database.
+12. Use the query editor to run the following query
 
    ```sql
-   ALTER TABLE `PROD.SAMPLE.APPLICANT_CREDIT_SCORE` SET ('changelog.mode' = 'append' , 'value.format' = 'avro-registry');
+   ALTER TABLE `PROD.public.applicant_credit_score` SET ('changelog.mode' = 'append' , 'value.format' = 'avro-registry');
    ```
 
 Now we are ready to enrich Mortage applications with Credit score data.
 
-## **Enrich Mortgage Applications with Credit Score data using Confluent Cloud Flink Table API**
+## **Enrich Mortgage Applications with Credit Score data**
 
-We will now use the **Flink Table API** to enrich mortgage applications with credit score data. This will create a new data product called `enriched_mortgage_applications`, which joins the `mortgage_applications` topic with the `PROD.SAMPLE.APPLICANT_CREDIT_SCORE` topic.
+We will now enrich mortgage applications with credit score data. This will create a new data product called `enriched_mortgage_applications`, which joins the `mortgage_applications` topic with the `PROD.public.applicant_credit_score` topic.
 
 ![Architecture](./assets/lab1-table-hld.png)
+
+<details>
+<summary>Option A: Java Table API (requires Java 17 and Maven)</summary>
+
+Install Java 17 and Maven if not already installed:
+
+| | Mac | Windows |
+|---|---|---|
+| Install | `brew install openjdk@17 maven` | `winget install --id Microsoft.OpenJDK.17 -e && winget install --id Apache.Maven -e` |
 
 1. Open a new terminal window in the repository's root directory.
 
@@ -103,11 +115,11 @@ We will now use the **Flink Table API** to enrich mortgage applications with cre
    mvn clean package
    ```
 
-   > ⚠️ **Note**: If you encounter this error: `Caused by: java.lang.NoSuchMethodError: 'com.sun.tools.javac.tree.JCTree com.sun.tools.javac.tree.JCTree$JCImport.getQualifiedIdentifier()'` 
-   > 
+   > ⚠️ **Note**: If you encounter this error: `Caused by: java.lang.NoSuchMethodError: 'com.sun.tools.javac.tree.JCTree com.sun.tools.javac.tree.JCTree$JCImport.getQualifiedIdentifier()'`
+   >
    > Try running `mvn clean package -Dspotless.check.skip=true`
 
-4. Run the compiled application. To get the exact command, run`terraform output` from the Terraform directory. Look for the value of `Flink_exec_command.` The command should look like this:
+4. Run the compiled application. To get the exact command, run `terraform output` from the Terraform directory. Look for the value of `Flink_exec_command.` The command should look like this:
    ```
    java -jar target/flink-table-api-java-demo-0.1.jar '<Confluent_environment_name>' '<confluent_cluster_name>'
    ```
@@ -120,6 +132,74 @@ We will now use the **Flink Table API** to enrich mortgage applications with cre
    ![Enriched Mortgage Applications](./assets/lab1-table1.png)
 
    > **NOTE: You should see John's application in there.**
+
+</details>
+
+<details>
+<summary>Option B: Flink SQL (no Maven required)</summary>
+
+1. In [Flink UI](https://confluent.cloud/go/flink), open a SQL workspace.
+2. Run the following to create the table and populate it:
+
+   ```sql
+   SET 'client.statement-name' = 'enriched-mortgage-applications-materializer';
+   CREATE TABLE `enriched_mortgage_applications` (
+     application_id STRING,
+     customer_email STRING,
+     borrower_name STRING,
+     applicant_id STRING,
+     income DOUBLE,
+     payslips STRING,
+     loan_amount DOUBLE,
+     property_address STRING,
+     property_state STRING,
+     property_value DOUBLE,
+     employment_status STRING,
+     credit_score DOUBLE,
+     credit_utilization DOUBLE,
+     open_credit_accounts DOUBLE,
+     recent_defaults DOUBLE,
+     debt_to_income_ratio DOUBLE,
+     application_ts TIMESTAMP_LTZ(3),
+     WATERMARK FOR application_ts AS application_ts - INTERVAL '5' SECOND
+   )
+   AS
+   SELECT
+     m.application_id,
+     m.customer_email,
+     m.customer_name AS borrower_name,
+     m.applicant_id,
+     CAST(m.income AS DOUBLE) AS income,
+     m.payslips,
+     CAST(m.loan_amount AS DOUBLE) AS loan_amount,
+     m.property_address,
+     m.property_state,
+     CAST(m.property_value AS DOUBLE) AS property_value,
+     m.employment_status,
+     c.after.credit_score AS credit_score,
+     c.after.credit_utilization AS credit_utilization,
+     c.after.open_credit_accounts AS open_credit_accounts,
+     c.after.public_records AS recent_defaults,
+     CAST(ROUND((CAST(m.loan_amount AS DECIMAL(10, 2)) / CAST(m.income AS DECIMAL(10, 2))) * 100, 2) AS DOUBLE) AS debt_to_income_ratio,
+     m.application_ts
+   FROM `mortgage_applications` m
+   JOIN `PROD.public.applicant_credit_score` c
+   ON m.applicant_id = c.after.applicant_id;
+   ```
+
+<!-- -->
+
+> [!IMPORTANT]
+> This query should run continuously and **must not be stopped or deleted**.
+> Add new cells **above or below** this one before proceeding.
+
+3. Verify output:
+
+   ```sql
+   SELECT * FROM enriched_mortgage_applications;
+   ```
+
+</details>
 
 
 
@@ -168,8 +248,9 @@ Then, we will perform a **temporal join** between `enriched_mortgage_application
    GROUP BY applicant_id;
    ```
 
-   > **Note:** This query should run continuously and **must not be stopped or deleted**.  
-   > Add new cells **above or below** this one before proceeding.
+> [!IMPORTANT]
+> This query should run continuously and **must not be stopped or deleted**.  
+> Add new cells **above or below** this one before proceeding.
 
 2. In a new cell, check the output of `applicant_payment_summary`
 
@@ -178,12 +259,12 @@ Then, we will perform a **temporal join** between `enriched_mortgage_application
    ```
 
 
-3. Join `enriched_mortgage_applications` with `applicant_payment_summary` and use TTL to manage Flink state.
+3. Perform a **temporal join** between `enriched_mortgage_applications` and `applicant_payment_summary`. This joins each mortgage application with the payment history as it existed at the time of the application.
 
    ```sql
-   SET 'sql.state-ttl' = '1 min';
    SET 'client.statement-name' = 'enriched-mortgage-payments-materializer';
    CREATE TABLE `enriched_mortgage_with_payments`
+   WITH ('changelog.mode' = 'append')
       AS
       SELECT
       m.application_id,
@@ -204,14 +285,15 @@ Then, we will perform a **temporal join** between `enriched_mortgage_application
       m.debt_to_income_ratio,
       m.application_ts,
       p.payment_history
-      FROM `enriched_mortgage_applications` m
-      LEFT JOIN `applicant_payment_summary` p
-      ON m.applicant_id = p.applicant_id;
+     FROM `enriched_mortgage_applications` m
+     LEFT JOIN `applicant_payment_summary` FOR SYSTEM_TIME AS OF m.application_ts AS p
+     ON m.applicant_id = p.applicant_id
+      WHERE m.property_value < 500000;
    ```
 
-   > **Note:** This query should run continuously and **must not be stopped or deleted**.  
-   > Add new cells **above or below** this one before proceeding.  
-   > You should now have **two cells** with queries running continuously.
+> [!IMPORTANT]
+> This query should run continuously and **must not be stopped or deleted**.  
+> Add new cells **above or below** this one before proceeding.  
 
 
 2. In a new cell, check the output of `enriched_mortgage_with_payments`
@@ -219,7 +301,8 @@ Then, we will perform a **temporal join** between `enriched_mortgage_application
    ```sql
    SELECT * FROM enriched_mortgage_with_payments
    ```
-   > ⚠️ **Note**: It may take upto 2 mins for the data to appear in Flink UI.
+> [!NOTE]
+> It may take up to 2 minutes for data to appear. The temporal join emits results once the payment history source table advances the watermark past the mortgage application timestamp. A new payment is received every 15-30 seconds.
 
    > ⚠️ **Note**:: Some applicants will not have any historical payments.
 
