@@ -26,12 +26,6 @@ variable "domain_name" {
   default     = "example.com"
 }
 
-variable "mode" {
-  description = "Deployment mode: workshop or self-serve"
-  type        = string
-  default     = "self-serve"
-}
-
 variable "zapier_token" {
   description = "Zapier MCP token for Streamable HTTP connection"
   type        = string

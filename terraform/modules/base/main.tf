@@ -332,8 +332,8 @@ resource "confluent_flink_statement" "mcp_connection" {
     CREATE CONNECTION `${confluent_environment.staging.display_name}`.`${confluent_kafka_cluster.standard.display_name}`.`mcp_connection`
     WITH (
       'type' = 'mcp_server',
-      'endpoint' = '${var.mode == "workshop" ? var.mcp_url : "https://mcp.zapier.com/api/v1/connect"}',
-      'token' = '${var.mode == "workshop" ? var.mcp_token : var.zapier_token}'
+      'endpoint' = '${var.mcp_endpoint}',
+      'token' = '${var.mcp_token}'
     );
   EOT
 

@@ -47,8 +47,8 @@ module "base" {
   prefix                     = var.prefix
   cloud_region               = var.cloud_region
   domain_name                = var.domain_name
-  mode                       = var.mode
-  zapier_token               = var.zapier_token
+  mcp_endpoint               = "https://mcp.zapier.com/api/v1/connect"
+  mcp_token                  = var.zapier_token
   db_host                    = module.aws.db_host
   db_port                    = module.aws.db_port
   db_name                    = module.aws.db_name

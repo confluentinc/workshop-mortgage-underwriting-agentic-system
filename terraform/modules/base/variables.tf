@@ -21,27 +21,12 @@ variable "domain_name" {
   default = "example.com"
 }
 
-variable "mode" {
+variable "mcp_endpoint" {
   type = string
-  validation {
-    condition     = contains(["workshop", "self-serve"], var.mode)
-    error_message = "mode must be \"workshop\" or \"self-serve\""
-  }
-}
-
-variable "zapier_token" {
-  type    = string
-  default = ""
-}
-
-variable "mcp_url" {
-  type    = string
-  default = ""
 }
 
 variable "mcp_token" {
   type      = string
-  default   = ""
   sensitive = true
 }
 

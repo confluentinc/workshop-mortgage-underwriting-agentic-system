@@ -26,12 +26,6 @@ variable "domain_name" {
   default     = "example.com"
 }
 
-variable "mode" {
-  description = "Deployment mode: workshop or self-serve"
-  type        = string
-  default     = "workshop"
-}
-
 variable "mcp_url" {
   description = "MCP server URL provided by the workshop host"
   type        = string
