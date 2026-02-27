@@ -27,6 +27,8 @@
 **/.env
 **/.env.local
 **/.env.*.local
+**/.webapp.env
+**/.datagen.env
 **/*.pem
 **/*.key
 **/*.cert
