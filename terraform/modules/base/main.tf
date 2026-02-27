@@ -333,8 +333,7 @@ resource "confluent_flink_statement" "mcp_connection" {
     WITH (
       'type' = 'mcp_server',
       'endpoint' = '${var.mcp_endpoint}',
-      'token' = '${var.mcp_token}',
-      'transport-type' = '${var.mcp_transport_type}'
+      'token' = '${var.mcp_token}'${var.mcp_transport_type != "" ? ",\n      'transport-type' = '${var.mcp_transport_type}'" : ""}
     );
   EOT
 

@@ -21,7 +21,7 @@ module "base" {
   domain_name                = var.domain_name
   mcp_endpoint               = var.mcp_url
   mcp_token                  = var.mcp_token
-  mcp_transport_type         = "SSE"
+  mcp_transport_type         = ""
   db_host                    = var.db_host
   db_port                    = var.db_port
   db_name                    = var.db_name
