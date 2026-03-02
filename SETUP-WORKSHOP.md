@@ -2,6 +2,7 @@
 
 This repository showcases a demo for a mortgage provider that leverages **Confluent Cloud**, **AWS**, and **AI** to fully automate mortgage applications—from initial submission to final decision and offer.
 
+*Instructors: if you're hosting this workshop for a group, ensure that you've completed the MCP server setup in the [MCP Email for Workshops](https://github.com/confluentinc/mcp-email-for-workshops) repo.*
 
 ![Architecture](./assets/HLD.png)
 
