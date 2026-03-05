@@ -66,8 +66,8 @@ We will source credit score data from the instructor-provided Postgres DB to the
 
    | Field | Value |
    |-------|-------|
-   | **Slot name** | `<your_db_name>_debezium` |
-   | **Publication name** | `<your_db_name>_dbz_publication` |
+   | **Slot name** | `<your_db_name>_debezium` (e.g. `app1_debezium`) |
+   | **Publication name** | `<your_db_name>_dbz_publication` (e.g. `app1_dbz_publication`) |
 
 > [!CAUTION]
 > **Workshop mode only:** You must set unique Slot name and Publication name. All workshop users share the same Postgres database. Using the default values will cause conflicts between connectors.

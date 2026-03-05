@@ -51,7 +51,7 @@ variable "db_port" {
 }
 
 variable "db_name" {
-  description = "Instructor-provided Postgres DB name"
+  description = "Instructor-provided database name (format: appNNN)"
   type        = string
 
   validation {

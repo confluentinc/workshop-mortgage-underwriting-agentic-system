@@ -81,7 +81,7 @@ Before starting, make sure you have:
    | `bedrock_access_key_id` | Provided by your instructor |
    | `bedrock_secret_access_key` | Provided by your instructor |
    | `db_host` | Provided by your instructor |
-   | `db_name` | Provided by your instructor |
+   | `db_name` | Provided by your instructor (e.g. `app1`, `app27`) |
    | `db_password` | Provided by your instructor |
 
 > [!CAUTION]
