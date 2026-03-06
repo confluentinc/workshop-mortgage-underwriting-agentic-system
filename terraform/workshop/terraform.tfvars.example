@@ -1,0 +1,10 @@
+confluent_cloud_api_key    = "CONFLUENT_CLOUD_API_KEY"
+confluent_cloud_api_secret = "CONFLUENT_CLOUD_API_SECRET"
+mcp_url                    = "MCP_SERVER_URL"
+mcp_token                  = "MCP_SERVER_TOKEN"
+bedrock_access_key_id      = "AWS_ACCESS_KEY_ID"
+bedrock_secret_access_key  = "AWS_SECRET_ACCESS_KEY"
+db_host                    = "POSTGRES_HOST"
+db_port                    = 5432
+db_name                    = "appNNN"
+db_password                = "POSTGRES_PASSWORD"
