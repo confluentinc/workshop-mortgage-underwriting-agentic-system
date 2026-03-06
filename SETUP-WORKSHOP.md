@@ -106,45 +106,25 @@ Before starting, make sure you have:
 > [!IMPORTANT]
 > Terraform will take around 10 minutes to deploy.
 
-## Post-Deployment Steps
+## Post-Deployment Verification
 
-> [!IMPORTANT]
-> Run this step in a different tab. Data gen needs to continously run.
-
-Once the infrastructure is deployed, we can generate mortgage data. The data generator sends `mortgage_applications` and `historical_payments` to **Kafka**, and `credit_score` data to **Postgres**.
-
-1. Open a new terminal window and navigate to the data-gen directory from the repo root:
-   ```
-   cd workshop-mortgage-underwriting-agentic-system/terraform/data-gen
-   ```
-3. Run the data generator
-
-   <details>
-   <summary>Click to expand for MAC</summary>
-
-   ```
-   ./run.sh
-   ```
-
-   </details>
-
-   <details>
-   <summary>Click to expand for Windows</summary>
-
-   ```
-   .\run.bat
-   ```
-
-   </details>
+Terraform automatically deploys the **data generator**, the **Postgres CDC Source Connector**, and the **mortgage webapp**. The data generator runs continuously in a Docker container named `mortgage-datagen`, sending `mortgage_applications` and `historical_payments` to **Kafka**, and `credit_score` data to **Postgres**.
 
 > [!CAUTION]
-> **Do not stop the data generator.** It must run continuously to advance Flink watermarks. Stopping it will break the labs.
+> **Do not stop the data generator container (`mortgage-datagen`).** It must run continuously to advance Flink watermarks. Stopping it will break the labs.
 
 > **Note:** The data generator produces a new mortgage application every 10 minutes.
 
-5. To verify that the data has been successfully generated, go to the [Confluent Cloud Topic UI](https://confluent.cloud/go/topics). Select your environment and cluster, then click on the `payment_history` topic to confirm that data is being produced.
+1. Verify the data generator is running:
+   ```
+   docker logs mortgage-datagen
+   ```
+
+2. To verify that the data has been successfully generated, go to the [Confluent Cloud Topic UI](https://confluent.cloud/go/topics). Select your environment and cluster, then click on the `payment_history` topic to confirm that data is being produced.
 
    ![Architecture](./assets/verify.png)
+
+3. In the [Connectors UI](https://confluent.cloud/go/connectors), verify that the Postgres CDC Source Connector is listed and shows a **Running** status.
 
 
 ### Submit a Mortgage Application from the Website
@@ -192,13 +172,7 @@ After completing Labs 1 and 2, you can run an end-to-end [demo](./Demo/demo-READ
 ## Clean-up
 Once you are finished with this demo, remember to destroy the resources you created, to avoid incurring charges. You can always spin it up again anytime you want.
 
-Before tearing down the infrastructure, delete the Postgres CDC connector, as it was created outside of Terraform and won't be automatically removed:
-
-```
-confluent connect cluster delete <CONNECTOR_ID> --cluster <CLUSTER_ID> --environment <ENVIRONMENT_ID> --force
-```
-
-To destroy all the resources created run the command below from the ```terraform/workshop``` directory:
+To destroy all the resources created (including the Postgres CDC connector, data generator, and webapp containers) run the command below from the ```terraform/workshop``` directory:
 
 ```
 terraform destroy --auto-approve

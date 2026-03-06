@@ -266,8 +266,85 @@ resource "confluent_kafka_acl" "app-manager-read-on-group" {
 # Connectors
 # ------------------------------------------------------
 
+resource "confluent_connector" "postgres_cdc_source" {
+  environment {
+    id = confluent_environment.staging.id
+  }
+  kafka_cluster {
+    id = confluent_kafka_cluster.standard.id
+  }
 
+  config_sensitive = {
+    "database.password" = var.db_password
+    "kafka.api.secret"  = confluent_api_key.app-manager-kafka-api-key.secret
+  }
 
+  config_nonsensitive = {
+    "connector.class"             = "PostgresCdcSourceV2"
+    "name"                        = "${var.db_name}-postgres-cdc-source"
+    "kafka.auth.mode"             = "KAFKA_API_KEY"
+    "kafka.api.key"               = confluent_api_key.app-manager-kafka-api-key.id
+    "database.hostname"           = var.db_host
+    "database.port"               = tostring(var.db_port)
+    "database.user"               = var.db_username
+    "database.dbname"             = var.db_name
+    "topic.prefix"                = "PROD"
+    "table.include.list"          = "public.applicant_credit_score"
+    "slot.name"                   = "${var.db_name}_debezium"
+    "publication.name"            = "${var.db_name}_dbz_publication"
+    "publication.autocreate.mode" = "filtered"
+    "output.data.format"          = "AVRO"
+    "output.key.format"           = "AVRO"
+    "decimal.handling.mode"       = "double"
+    "tasks.max"                   = "1"
+  }
+
+  depends_on = [
+    confluent_kafka_acl.app-manager-read-on-topic,
+    confluent_kafka_acl.app-manager-write-on-topic,
+    confluent_kafka_acl.app-manager-create-topic,
+    confluent_kafka_acl.app-manager-read-on-group,
+    confluent_kafka_acl.app-manager-describe-on-cluster,
+    null_resource.datagen_container_unix,
+    null_resource.datagen_container_windows,
+  ]
+}
+
+# Set changelog mode on the CDC topic for joining with mortgage_applications
+resource "confluent_flink_statement" "alter_credit_score_table" {
+  organization {
+    id = data.confluent_organization.confluent_org.id
+  }
+  environment {
+    id = confluent_environment.staging.id
+  }
+  compute_pool {
+    id = confluent_flink_compute_pool.flinkpool-main.id
+  }
+  principal {
+    id = confluent_service_account.app-manager.id
+  }
+  rest_endpoint = data.confluent_flink_region.demo_flink_region.rest_endpoint
+  credentials {
+    key    = confluent_api_key.app-manager-flink-api-key.id
+    secret = confluent_api_key.app-manager-flink-api-key.secret
+  }
+
+  statement_name = "alter-credit-score-changelog-mode"
+
+  statement = <<-EOT
+    ALTER TABLE `${confluent_environment.staging.display_name}`.`${confluent_kafka_cluster.standard.display_name}`.`PROD.public.applicant_credit_score` SET ('changelog.mode' = 'append', 'value.format' = 'avro-registry');
+  EOT
+
+  properties = {
+    "sql.current-catalog"  = confluent_environment.staging.display_name
+    "sql.current-database" = confluent_kafka_cluster.standard.display_name
+  }
+
+  depends_on = [
+    confluent_connector.postgres_cdc_source
+  ]
+}
 
 # ------------------------------------------------------
 # MCP Connection
