@@ -50,17 +50,19 @@ We will source credit score data from the instructor-provided Postgres DB to the
    | Field | Value |
    |-------|-------|
    | **Database hostname** | _from terraform output_ |
-   | **Database name** | _from terraform output_ |
    | **Database port** | `5432` |
    | **Database username** | `postgres` |
    | **Database password** | _from terraform output_ |
+   | **Database name** | _from terraform output_ |
 
    <img src="./assets/lab1-pgsql-auth.png" width="500">
+
+> [!CAUTION]
+> **Workshop mode only:** You must use the database name and password provided by your instructor.
 
 4. For Configuration enter the following:
    - **Output Key and Value** as `AVRO`
    - **Topic prefix** as `PROD`
-   - **Table include list** as `public.applicant_credit_score`
 
 5. In **Database config**, update the Slot name and Publication name. Run `terraform output postgres_cdc_connector` to get your unique values:
 
@@ -70,9 +72,12 @@ We will source credit score data from the instructor-provided Postgres DB to the
    | **Publication name** | `<your_db_name>_dbz_publication` (e.g. `app1_dbz_publication`) |
 
 > [!CAUTION]
-> **Workshop mode only:** You must set unique Slot name and Publication name. All workshop users share the same Postgres database. Using the default values will cause conflicts between connectors.
+> **Workshop mode only:** You must set unique Slot name and Publication name. Using the default values will cause conflicts between connectors.
 
 6. In **advanced configurations**, set **Decimal handling mode** to `double`.
+
+   <img src="./assets/lab1-connector-decimal-setting.png" width="500">
+
 7. Follow the wizard to create the connector.
 8. After a few minutes, the connector should be up and running. Data will begin flowing from Postgres to the `PROD.public.applicant_credit_score` topic.
 
