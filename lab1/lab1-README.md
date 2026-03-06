@@ -39,7 +39,11 @@ The Postgres CDC Source Connector and its configuration were automatically deplo
 
 1. In the [Connectors UI](https://confluent.cloud/go/connectors), verify that the connector is listed and shows a **Running** status.
 
+   ![Verify that the connector is running](./assets/lab1-verify-connector.png)
+
 2. Navigate to [Topics UI](https://confluent.cloud/go/topics). Select your environment and cluster, then click on the `PROD.public.applicant_credit_score` topic to confirm that data is flowing.
+
+   ![Verify that the topic has messages](./assets/lab1-verify-topic.png)
 
 3. Navigate to [Flink UI](https://confluent.cloud/go/flink) in Confluent Cloud and select the demo environment.
 4. Click on **Open SQL Workspace**.

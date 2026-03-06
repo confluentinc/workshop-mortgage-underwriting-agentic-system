@@ -126,6 +126,8 @@ Terraform automatically deploys the **data generator**, the **Postgres CDC Sourc
 
 3. In the [Connectors UI](https://confluent.cloud/go/connectors), verify that the Postgres CDC Source Connector is listed and shows a **Running** status.
 
+   ![Architecture](./assets/verify-connector.png)
+
 
 ### Submit a Mortgage Application from the Website
 
