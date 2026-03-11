@@ -31,63 +31,30 @@ The rules were already created by Terraform, there is no need to do anything her
    ![Data Quality Rule](./assets/lab1-msgdlq.png)
 
 
-## **Setting up the Fully managed Postgres CDC Source Connector**
+## **Verifying the Postgres CDC Source Connector**
 
-We will source credit score data from the instructor-provided Postgres DB to the `PROD.public.applicant_credit_score` topic in Confluent.
+The Postgres CDC Source Connector and its configuration were automatically deployed by Terraform. The connector streams credit score data from Postgres to the `PROD.public.applicant_credit_score` topic in Confluent Cloud. Terraform also configured the topic's changelog mode to `append`, which is required for joining with `mortgage_applications`.
 
 ![Architecture](./assets/lab1-db-hld.png)
 
-1. In the [Connectors UI](https://confluent.cloud/go/connectors), add a new **Postgres CDC Source V2 (Debezium)** connector.
-2. Configure the Kafka credentials:
-   - Select **Service Account** → **Existing Account**
-   - From the drop-down, select the service account created by Terraform (format: `<prefix>-app-manager-<random_suffix>`)
-   - Check **Add all required ACLs**
-   - Click **Continue**
-3. Enter the Postgres connection details, then click **Continue**.
+1. In the [Connectors UI](https://confluent.cloud/go/connectors), verify that the connector is listed and shows a **Running** status.
 
-   Run `terraform output postgres_cdc_connector` to get the values for hostname, database name, and password. Use the following format:
+   ![Verify that the connector is running](./assets/lab1-verify-connector.png)
 
-   | Field | Value |
-   |-------|-------|
-   | **Database hostname** | _from terraform output_ |
-   | **Database name** | _from terraform output_ |
-   | **Database port** | `5432` |
-   | **Database username** | `postgres` |
-   | **Database password** | _from terraform output_ |
+2. Navigate to [Topics UI](https://confluent.cloud/go/topics). Select your environment and cluster, then click on the `PROD.public.applicant_credit_score` topic to confirm that data is flowing.
 
-   <img src="./assets/lab1-pgsql-auth.png" width="500">
+   ![Verify that the topic has messages](./assets/lab1-verify-topic.png)
 
-4. For Configuration enter the following:
-   - **Output Key and Value** as `AVRO`
-   - **Topic prefix** as `PROD`
-   - **Table include list** as `public.applicant_credit_score`
-
-5. In **Database config**, update the Slot name and Publication name. Run `terraform output postgres_cdc_connector` to get your unique values:
-
-   | Field | Value |
-   |-------|-------|
-   | **Slot name** | `<your_db_name>_debezium` |
-   | **Publication name** | `<your_db_name>_dbz_publication` |
-
-> [!CAUTION]
-> **Workshop mode only:** You must set unique Slot name and Publication name. All workshop users share the same Postgres database. Using the default values will cause conflicts between connectors.
-
-6. In **advanced configurations**, set **Decimal handling mode** to `double`.
-7. Follow the wizard to create the connector.
-8. After a few minutes, the connector should be up and running. Data will begin flowing from Postgres to the `PROD.public.applicant_credit_score` topic.
-
-Finally, to prepare this topic for joining with `mortgage_applications`, we will set the changelog mode to `append` instead of `retract`.
-
-9. Navigate to [Flink UI](https://confluent.cloud/go/flink) in Confluent Cloud and select the demo environment.
-10. Click on **Open SQL Workspace**.
-11. On the top right corner of your workspace select the cluster as your database.
-12. Use the query editor to run the following query
+3. Navigate to [Flink UI](https://confluent.cloud/go/flink) in Confluent Cloud and select the demo environment.
+4. Click on **Open SQL Workspace**.
+5. On the top right corner of your workspace select the cluster as your database.
+6. Verify data by running the following query:
 
    ```sql
-   ALTER TABLE `PROD.public.applicant_credit_score` SET ('changelog.mode' = 'append' , 'value.format' = 'avro-registry');
+   SELECT * FROM `PROD.public.applicant_credit_score`;
    ```
 
-Now we are ready to enrich Mortage applications with Credit score data.
+Now we are ready to enrich Mortgage applications with Credit score data.
 
 ## **Enrich Mortgage Applications with Credit Score data**
 

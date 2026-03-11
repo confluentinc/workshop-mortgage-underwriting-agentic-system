@@ -51,8 +51,13 @@ variable "db_port" {
 }
 
 variable "db_name" {
-  description = "Instructor-provided Postgres DB name"
+  description = "Instructor-provided database name (format: appNNN)"
   type        = string
+
+  validation {
+    condition     = can(regex("^app[0-9]{1,3}$", var.db_name))
+    error_message = "The db_name must begin with 'app' followed by 1 to 3 digits (e.g., 'app1', 'app27', 'app105'). You can get your db_name value from the instructor."
+  }
 }
 
 variable "db_username" {
