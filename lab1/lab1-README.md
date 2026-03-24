@@ -11,7 +11,7 @@ By the end of this lab, we will have built a real-time, contextualized data prod
 
 ![Architecture](./assets/lab1-hld.png)
 
-## **[OPTIONAL] Using Confluent Cloud Data Quality Rules**
+## **Step 1 [OPTIONAL]: Using Confluent Cloud Data Quality Rules**
 
 We want to make sure that any data produced adheres to a specific format. In our case, we want to make sure that any Mortgage Application coming in has a valid payslip URI. This check is done by using [Data Quality Rules](https://docs.confluent.io/cloud/current/sr/fundamentals/data-contracts.html#data-quality-rules), these rules are set in Confluent Schema registry, and pushed to the clients, where they are enforced. No need to change any code.
 
@@ -31,7 +31,7 @@ The rules were already created by Terraform, there is no need to do anything her
    ![Data Quality Rule](./assets/lab1-msgdlq.png)
 
 
-## **Verifying the Postgres CDC Source Connector**
+## **Step 2: Verifying the Postgres CDC Source Connector**
 
 The Postgres CDC Source Connector and its configuration were automatically deployed by Terraform. The connector streams credit score data from Postgres to the `PROD.public.applicant_credit_score` topic in Confluent Cloud. Terraform also configured the topic's changelog mode to `append`, which is required for joining with `mortgage_applications`.
 
@@ -56,7 +56,7 @@ The Postgres CDC Source Connector and its configuration were automatically deplo
 
 Now we are ready to enrich Mortgage applications with Credit score data.
 
-## **Enrich Mortgage Applications with Credit Score data**
+## **Step 3: Enrich Mortgage Applications with Credit Score data**
 
 We will now enrich mortgage applications with credit score data. This will create a new data product called `enriched_mortgage_applications`, which joins the `mortgage_applications` topic with the `PROD.public.applicant_credit_score` topic.
 
@@ -170,7 +170,7 @@ Install Java 17 and Maven if not already installed:
 
 
 
-## **Using Flink SQL to enrich Mortgage applications with Historical payments**
+## **Step 4: Using Flink SQL to enrich Mortgage applications with Historical payments**
 
 Now we will use **Flink SQL** to further enrich mortgage applications with historical payment data.
 

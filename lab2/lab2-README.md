@@ -10,7 +10,7 @@ By the end of this lab, the entire mortgage application process will be fully au
 
 ![Architecture](./assets/HLD.png)
 
-## **Agent 1: Fraud and Credit Risk Assessment (Flink Streaming Agent)**
+## **Step 1 - Agent 1: Fraud and Credit Risk Assessment (Flink Streaming Agent)**
 
 This Flink Streaming Agent evaluates each enriched application plus payment history, assigns fraud and credit risk signals, and writes a validated record to `mortgage_validated_apps` for downstream decisioning.
 
@@ -139,7 +139,7 @@ This Flink Streaming Agent evaluates each enriched application plus payment hist
    ```
 
 
- ## **Agent 2: Combined Mortgage Decision and Letter**
+## **Step 2 - Agent 2: Combined Mortgage Decision and Letter**
 
 Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink SQL with direct access to external tools and APIs — enabling fully automated, closed-loop workflows within your streaming infrastructure.
 
