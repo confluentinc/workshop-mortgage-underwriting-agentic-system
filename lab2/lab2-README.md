@@ -10,7 +10,7 @@ By the end of this lab, the entire mortgage application process will be fully au
 
 ![Architecture](./assets/HLD.png)
 
-## **Agent 1: Fraud and Credit Risk Assessment (Flink Streaming Agent)**
+## **Step 1 - Agent 1: Fraud and Credit Risk Assessment (Flink Streaming Agent)**
 
 This Flink Streaming Agent evaluates each enriched application plus payment history, assigns fraud and credit risk signals, and writes a validated record to `mortgage_validated_apps` for downstream decisioning.
 
@@ -139,7 +139,7 @@ This Flink Streaming Agent evaluates each enriched application plus payment hist
    ```
 
 
- ## **Agent 2: Combined Mortgage Decision and Letter**
+## **Step 2 - Agent 2: Combined Mortgage Decision and Letter**
 
 Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink SQL with direct access to external tools and APIs — enabling fully automated, closed-loop workflows within your streaming infrastructure.
 
@@ -176,8 +176,8 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
 
 3. **In the query below, replace `<<YOUR_EMAIL_ADDRESS_HERE>>` with your email** and then start Agent 2.
 
-   > [!WARNING]
-   > You **must** replace `<<YOUR_EMAIL_ADDRESS_HERE>>` with your actual email address in the query below. If you skip this step, you will not receive the mortgage decision email.
+> [!WARNING]
+> You **must** replace `<<YOUR_EMAIL_ADDRESS_HERE>>` with your actual email address in the query below. If you skip this step, you will not receive the mortgage decision email.
 
    ```sql
    SET 'client.statement-name' = 'mortgage-decisions-agent';
@@ -301,9 +301,9 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
    ) AS agent_result(status, response);
    ```
 
-   > [!IMPORTANT]
-   > This query should run continuously and **must not be stopped or deleted**.  
-   > Add new cells **above or below** this one before proceeding.
+> [!IMPORTANT]
+> This query should run continuously and **must not be stopped or deleted**.
+> Add new cells **above or below** this one before proceeding.
 
    <details>
    <summary>Troubleshooting the email delivery</summary>

@@ -12,7 +12,7 @@ Before starting, make sure you have:
 
 | Requirement | Check |
 |-------------|-------|
-| **Confluent Cloud account** with [API Keys](https://docs.confluent.io/cloud/current/security/authenticate/workload-identities/service-accounts/api-keys/overview.html#resource-scopes) (`Cloud resource management` permissions) | [Sign up here](https://www.confluent.io/get-started/) |
+| **Confluent Cloud account** with [API Keys](https://docs.confluent.io/cloud/current/security/authenticate/workload-identities/service-accounts/api-keys/overview.html#resource-scopes) (`Cloud resource management` permissions) | [Sign up here](https://cnfl.io/dswt2026) |
 | **Terraform** v1.5.7+ | `brew install terraform` or [download](https://www.terraform.io/downloads.html) |
 | **Git CLI** | `brew install git` |
 | **Container runtime** (Docker Desktop, Colima, or Podman) | Install one runtime |
