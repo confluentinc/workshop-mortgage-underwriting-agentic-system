@@ -176,8 +176,8 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
 
 3. **In the query below, replace `<<YOUR_EMAIL_ADDRESS_HERE>>` with your email** and then start Agent 2.
 
-   > [!WARNING]
-   > You **must** replace `<<YOUR_EMAIL_ADDRESS_HERE>>` with your actual email address in the query below. If you skip this step, you will not receive the mortgage decision email.
+> [!WARNING]
+> You **must** replace `<<YOUR_EMAIL_ADDRESS_HERE>>` with your actual email address in the query below. If you skip this step, you will not receive the mortgage decision email.
 
    ```sql
    SET 'client.statement-name' = 'mortgage-decisions-agent';
@@ -301,9 +301,9 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
    ) AS agent_result(status, response);
    ```
 
-   > [!IMPORTANT]
-   > This query should run continuously and **must not be stopped or deleted**.  
-   > Add new cells **above or below** this one before proceeding.
+> [!IMPORTANT]
+> This query should run continuously and **must not be stopped or deleted**.
+> Add new cells **above or below** this one before proceeding.
 
    <details>
    <summary>Troubleshooting the email delivery</summary>
