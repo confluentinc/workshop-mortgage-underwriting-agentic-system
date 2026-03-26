@@ -1,0 +1,25 @@
+{
+  "name": "Mortgage Underwriting Workshop",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/meaningful-ooo/devcontainer-features/homebrew:2": {}
+  },
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "forwardPorts": [5001],
+  "portsAttributes": {
+    "5001": {
+      "label": "Mortgage Webapp",
+      "onAutoForward": "notify"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "hashicorp.terraform",
+        "ms-azuretools.vscode-docker",
+        "confluentinc.vscode-confluent"
+      ]
+    }
+  }
+}
