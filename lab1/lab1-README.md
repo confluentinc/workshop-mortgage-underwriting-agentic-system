@@ -154,6 +154,8 @@ Install Java 17 and Maven if not already installed:
    ON m.applicant_id = c.after.applicant_id;
    ```
 
+   ![Enriched Mortgage Applications Query Visualization](./assets/enriched-mortgage-applications-viz.png)
+
 <!-- -->
 
 > [!IMPORTANT]
@@ -215,8 +217,10 @@ Then, we will perform a **temporal join** between `enriched_mortgage_application
    GROUP BY applicant_id;
    ```
 
+   ![Applicant Payment Summary Query Visualization](./assets/applicant-payment-summary-viz.png)
+
 > [!IMPORTANT]
-> This query should run continuously and **must not be stopped or deleted**.  
+> This query should run continuously and **must not be stopped or deleted**.
 > Add new cells **above or below** this one before proceeding.
 
 2. In a new cell, check the output of `applicant_payment_summary`
@@ -258,9 +262,11 @@ Then, we will perform a **temporal join** between `enriched_mortgage_application
       WHERE m.property_value < 500000;
    ```
 
+   ![Enriched Mortgage With Payments Query Visualization](./assets/enriched-mortgage-with-payments-viz.png)
+
 > [!IMPORTANT]
-> This query should run continuously and **must not be stopped or deleted**.  
-> Add new cells **above or below** this one before proceeding.  
+> This query should run continuously and **must not be stopped or deleted**.
+> Add new cells **above or below** this one before proceeding.
 
 
 2. In a new cell, check the output of `enriched_mortgage_with_payments`
