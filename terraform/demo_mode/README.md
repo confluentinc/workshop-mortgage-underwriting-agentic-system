@@ -124,40 +124,7 @@ Terraform automatically deploys the entire pipeline — from infrastructure to A
    - `mortgage_decisions_agent` — AI agent for mortgage approval/rejection decisions
    - `mortgage_decisions` — Applies decision agent and sends email notifications
 
-## Post-Deployment Verification
-
-> [!CAUTION]
-> **Do not stop the data generator container (`mortgage-datagen`).** It must run continuously to advance Flink watermarks. Stopping it will break the pipeline.
-
-> **Note:** The data generator waits 10 minutes after startup before producing mortgage applications. After that, it produces a new mortgage application every minute.
-
-1. Verify the data generator is running:
-   ```
-   docker logs mortgage-datagen
-   ```
-
-2. To verify that the data has been successfully generated, go to the [Confluent Cloud Topic UI](https://confluent.cloud/go/topics). Select your environment and cluster, then click on the `payment_history` topic to confirm that data is being produced.
-
-   ![Verify topics](../../assets/verify.png)
-
-3. In the [Connectors UI](https://confluent.cloud/go/connectors), verify that the Postgres CDC Source Connector is listed and shows a **Running** status.
-
-   ![Verify connector](../../assets/verify-connector.png)
-
-4. In the [Flink UI](https://confluent.cloud/go/flink), verify that all Flink statements are running. You should see the following statements:
-
-   - `enriched-mortgage-applications-materializer`
-   - `applicant-payment-summary-materializer`
-   - `enriched-mortgage-payments-materializer`
-   - `mortgage-risk-agent-create`
-   - `mortgage-risk-agent`
-   - `send-email-tool-create`
-   - `mortgage-decisions-agent-create`
-   - `mortgage-decisions-agent`
-
-5. Once mortgage applications start flowing (after 10 minutes), you should begin receiving mortgage decision emails at the `email_address` you configured.
-
-### Submit a Mortgage Application from the Website
+## Submit a Mortgage Application from the Website
 
 Submit a Mortgage application for `John Doe` - an applicant with high-credit-score.
 
