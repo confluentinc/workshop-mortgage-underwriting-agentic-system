@@ -124,7 +124,36 @@ Terraform automatically deploys the entire pipeline — from infrastructure to A
    - `mortgage_decisions_agent` — AI agent for mortgage approval/rejection decisions
    - `mortgage_decisions` — Applies decision agent and sends email notifications
 
-## Submit a Mortgage Application from the Website
+## Demo
+
+### Walkthrough with Stream Lineage
+
+[Stream Lineage](https://docs.confluent.io/cloud/current/stream-governance/stream-lineage.html) in Confluent Cloud provides a visual map of how data flows through the entire pipeline — from source topics, through Flink transformations and AI agents, to the final output topics.
+
+1. Navigate to [Stream Lineage](https://confluent.cloud/go/stream-lineage) in Confluent Cloud. Select your environment and cluster.
+
+2. In the lineage graph, locate the `mortgage_applications` topic as the starting point. You will see the full end-to-end pipeline:
+
+   ```
+   mortgage_applications ──► enriched_mortgage_applications ──► enriched_mortgage_with_payments ──► mortgage_validated_apps ──► mortgage_decisions
+                                        ▲                                    ▲
+   PROD.public.applicant_credit_score ──┘          applicant_payment_summary ┘
+                                                              ▲
+                                                   payment_history ─────────┘
+   ```
+
+3. Click on any node in the lineage graph to inspect it. You can see:
+   - **Topics**: Message count, schema, and data flowing through
+   - **Flink statements**: The SQL query powering each transformation
+   - **Connectors**: The Postgres CDC Source Connector streaming credit data
+
+4. Use Stream Lineage to explain each stage of the pipeline:
+   - **Data Ingestion**: `mortgage_applications` and `payment_history` topics receive data from the data generator. `PROD.public.applicant_credit_score` receives CDC data from Postgres.
+   - **Data Enrichment**: `enriched_mortgage_applications` joins mortgage apps with credit scores. `applicant_payment_summary` aggregates payment history. `enriched_mortgage_with_payments` performs a temporal join to combine everything.
+   - **AI Risk Assessment**: `mortgage_validated_apps` runs each application through the `mortgage_risk_agent` for fraud detection and credit risk scoring.
+   - **AI Decision Making**: `mortgage_decisions` runs each validated application through the `mortgage_decisions_agent` which makes the approval/rejection decision, generates a letter, and sends an email notification.
+
+### Submit a Mortgage Application
 
 Submit a Mortgage application for `John Doe` - an applicant with high-credit-score.
 
@@ -143,9 +172,11 @@ Submit a Mortgage application for `John Doe` - an applicant with high-credit-sco
 
    ![Submit application](../../assets/demo1.png)
 
-3. To verify that the data has been successfully generated, go to the [Confluent Cloud Topic UI](https://confluent.cloud/go/topics). Select your environment and cluster, then click on the `mortgage_applications`, you should see the new application there.
+3. To verify that the application was submitted, go to the [Confluent Cloud Topic UI](https://confluent.cloud/go/topics). Select your environment and cluster, then click on `mortgage_applications` — you should see the new application there.
 
-4. In the [Flink UI](https://confluent.cloud/go/flink), open a SQL workspace and verify John's application flows through the pipeline:
+4. Go back to [Stream Lineage](https://confluent.cloud/go/stream-lineage) and watch the application flow through the pipeline in real time.
+
+5. In the [Flink UI](https://confluent.cloud/go/flink), open a SQL workspace and verify John's application at each stage:
 
    ```sql
    SELECT * FROM enriched_mortgage_with_payments WHERE borrower_name = 'John Doe';
@@ -158,6 +189,8 @@ Submit a Mortgage application for `John Doe` - an applicant with high-credit-sco
    ```sql
    SELECT * FROM mortgage_decisions WHERE borrower_name = 'John Doe';
    ```
+
+6. Check your inbox — you should receive a mortgage decision email for John Doe's application at the `email_address` you configured.
 
 ## Clean-up
 
