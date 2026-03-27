@@ -22,9 +22,9 @@ PROD.public.applicant_credit_score ──┘          applicant_payment_summary 
 |------|-----------|-------------|
 | **Workshop** | `terraform/workshop/` | Instructor provides Postgres DB and Bedrock credentials. Participants manually create Flink SQL statements in Labs 1 & 2. |
 | **Self-serve** | `terraform/self-serve/` | Terraform provisions AWS infrastructure (EC2 Postgres, IAM for Bedrock) in addition to base. Participants still do labs manually. |
-| **Demo** | `terraform/demo_mode/` | Fully automated — all Flink DDL statements deployed via Terraform. Data gen runs continuously. |
+| **Demo** | `terraform/demo_mode/` | Fully automated — provisions AWS infra, all Flink DDL statements deployed via Terraform. Data gen runs continuously. |
 
-All three modes use `module.base` (`terraform/modules/base/`). Demo mode additionally uses `module.flink_statements` (`terraform/modules/flink-statements/`). Self-serve additionally uses `module.aws` (`terraform/modules/aws/`).
+All three modes use `module.base` (`terraform/modules/base/`). Demo mode additionally uses `module.flink_statements` (`terraform/modules/flink-statements/`) and `module.aws` (`terraform/modules/aws/`). Self-serve additionally uses `module.aws`.
 
 ## Directory Structure
 
@@ -33,7 +33,7 @@ terraform/
 ├── modules/
 │   ├── base/              # Core: env, cluster, topics, schemas, connectors, LLM model, MCP, datagen, webapp
 │   ├── flink-statements/  # 8 Flink DDL statements (CTAS, CREATE AGENT, CREATE TOOL) — used by demo_mode only
-│   └── aws/               # AWS infra (EC2 Postgres, IAM for Bedrock) — used by self-serve only
+│   └── aws/               # AWS infra (EC2 Postgres, IAM for Bedrock) — used by self-serve and demo_mode
 ├── workshop/              # Entry point for workshop mode
 ├── self-serve/            # Entry point for self-serve mode
 ├── demo_mode/             # Entry point for demo mode
@@ -138,14 +138,12 @@ Workshop/self-serve don't pass these values — they use defaults. Demo mode set
 
 ## Variable Naming Conventions
 
-Workshop and demo_mode use the same variable names:
-- `mcp_url` (not `mcp_endpoint`)
-- `bedrock_access_key_id` / `bedrock_secret_access_key` (not `bedrock_access_key` / `bedrock_secret_key`)
+Workshop uses instructor-provided variables:
+- `mcp_url`, `mcp_token`, `bedrock_access_key_id` / `bedrock_secret_access_key`, `db_host` / `db_name` / `db_password`
 - `db_name` has validation: must match `^app[0-9]{1,3}$`
-- `mcp_transport_type` hardcoded to `""` in workshop/demo_mode entry points
-- `email_address` is a required variable in demo_mode only (used in mortgage_decisions CTAS)
+- `mcp_transport_type` hardcoded to `""` in workshop entry point
 
-Self-serve uses different names and maps internally to base module vars. Self-serve also provisions its own AWS infra (module.aws) and passes those outputs to module.base.
+Self-serve and demo_mode use the same variables (`zapier_token`, `email`) and provision their own AWS infra via `module.aws` (EC2 Postgres + Bedrock IAM). MCP endpoint is hardcoded to `https://mcp.zapier.com/api/v1/connect`.
 
 The base module uses internal names: `mcp_endpoint`, `bedrock_access_key`, `bedrock_secret_key`. Each entry point maps its variable names to these.
 
@@ -189,6 +187,12 @@ All three modes pull the same `ghcr.io/ahmedszamzam/datagen:latest` image. If yo
 
 ### Data generator defaults must match original behavior
 When adding new configurable parameters to the data generator, always set defaults to match the original (pre-change) behavior. Workshop and self-serve don't pass these values — they rely on defaults. Only demo_mode explicitly overrides them in `demo_mode/main.tf`.
+
+### Flink SQL CONCAT returns NULL if any argument is NULL
+In Flink SQL, `CONCAT(a, b, c)` returns NULL if any argument is NULL — unlike some SQL dialects that skip NULLs. Always wrap nullable fields with `COALESCE` when building prompts for AI agents via `AI_RUN_AGENT`. Fields extracted from agent JSON responses (`JSON_VALUE`) are especially prone to being NULL when the upstream agent fails.
+
+### Keep lab2-README.md in sync with flink-statements module
+`lab2/lab2-README.md` and `terraform/modules/flink-statements/main.tf` contain the same Flink SQL statements (agent prompts, CTAS queries). When modifying one, always update the other to keep them consistent.
 
 ## Important: Terraform Dependency Ordering
 
