@@ -37,6 +37,44 @@ output "webapp_endpoint" {
   value       = "http://localhost:5001"
 }
 
+output "organization_id" {
+  value = data.confluent_organization.confluent_org.id
+}
+
+output "environment_id" {
+  value = confluent_environment.staging.id
+}
+
+output "environment_display_name" {
+  value = confluent_environment.staging.display_name
+}
+
+output "kafka_cluster_display_name" {
+  value = confluent_kafka_cluster.standard.display_name
+}
+
+output "flink_compute_pool_id" {
+  value = confluent_flink_compute_pool.flinkpool-main.id
+}
+
+output "flink_rest_endpoint" {
+  value = data.confluent_flink_region.demo_flink_region.rest_endpoint
+}
+
+output "flink_api_key_id" {
+  value     = confluent_api_key.app-manager-flink-api-key.id
+  sensitive = true
+}
+
+output "flink_api_key_secret" {
+  value     = confluent_api_key.app-manager-flink-api-key.secret
+  sensitive = true
+}
+
+output "service_account_id" {
+  value = confluent_service_account.app-manager.id
+}
+
 output "postgres_cdc_connector" {
   value = {
     database_hostname = var.db_host
@@ -65,5 +103,8 @@ PG_PORT=${var.db_port}
 PG_DATABASE=${var.db_name}
 PG_USERNAME=${var.db_username}
 PG_PASSWORD=${var.db_password}
+MORTGAGE_APP_INTERVAL_SECONDS=${var.mortgage_app_interval}
+MORTGAGE_APP_COUNT=${var.mortgage_app_count}
+MORTGAGE_APP_STARTUP_DELAY_SECONDS=${var.mortgage_app_startup_delay}
   EOT
 }

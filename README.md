@@ -17,12 +17,13 @@ This is workshop that demonstrates an end-to-end mortgage underwriting workflow 
 |------|-------------|-------------|
 | **Workshop** | Instructor provides the Postgres database and Bedrock credentials | [Get started](SETUP-WORKSHOP.md) |
 | **Self-serve** | Terraform provisions everything (EC2 Postgres, IAM for Bedrock) | [Get started](SETUP-SELF-SERVE.md) |
+| **Demo** | Fully automated end-to-end deployment — all Flink statements, agents, and data generation are provisioned by Terraform | [Get started](terraform/demo_mode/README.md) |
 
 ## Clean-up
 
 Once you are finished with this demo, remember to destroy the resources you created, to avoid incurring charges.
 
-1. From the same terraform directory you deployed from (`terraform/workshop` or `terraform/self-serve`), run:
+1. From the same terraform directory you deployed from (`terraform/workshop`, `terraform/self-serve`, or `terraform/demo_mode`), run:
 
    ```
    terraform destroy --auto-approve

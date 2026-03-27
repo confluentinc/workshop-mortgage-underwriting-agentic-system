@@ -67,3 +67,21 @@ variable "bedrock_secret_key" {
   type      = string
   sensitive = true
 }
+
+variable "mortgage_app_interval" {
+  description = "Interval in seconds between mortgage application events"
+  type        = number
+  default     = 600
+}
+
+variable "mortgage_app_count" {
+  description = "Number of mortgage applications to generate (-1 for continuous)"
+  type        = number
+  default     = 20
+}
+
+variable "mortgage_app_startup_delay" {
+  description = "Delay in seconds before starting mortgage application generation"
+  type        = number
+  default     = 600
+}

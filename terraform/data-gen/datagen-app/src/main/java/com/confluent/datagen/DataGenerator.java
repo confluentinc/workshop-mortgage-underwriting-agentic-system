@@ -52,6 +52,11 @@ public class DataGenerator {
     private static final String PG_USERNAME = env("PG_USERNAME");
     private static final String PG_PASSWORD = env("PG_PASSWORD");
 
+    // Configurable mortgage application parameters
+    private static final int MORTGAGE_APP_INTERVAL_SECONDS = envOrDefault("MORTGAGE_APP_INTERVAL_SECONDS", 600);
+    private static final int MORTGAGE_APP_COUNT = envOrDefault("MORTGAGE_APP_COUNT", 20);
+    private static final int MORTGAGE_APP_STARTUP_DELAY_SECONDS = envOrDefault("MORTGAGE_APP_STARTUP_DELAY_SECONDS", 600);
+
     // Topics
     private static final String TOPIC_MORTGAGE_APPLICATIONS = "mortgage_applications";
     private static final String TOPIC_PAYMENT_HISTORY = "payment_history";
@@ -227,26 +232,38 @@ public class DataGenerator {
         Schema mortgageSchema = getSchema(TOPIC_MORTGAGE_APPLICATIONS + "-value");
         Schema paymentSchema = getSchema(TOPIC_PAYMENT_HISTORY + "-value");
 
-        // Thread 1: Mortgage applications (20 events, 10 min throttle)
+        // Thread 1: Mortgage applications (configurable count and interval)
         Thread mortgageThread = new Thread(() -> {
             try (KafkaProducer<String, GenericRecord> producer = createProducer()) {
-                for (int i = 0; i < 20; i++) {
+                log.info("  Mortgage application thread waiting {} seconds before starting...",
+                    MORTGAGE_APP_STARTUP_DELAY_SECONDS);
+                Thread.sleep(MORTGAGE_APP_STARTUP_DELAY_SECONDS * 1000L);
+
+                boolean continuous = MORTGAGE_APP_COUNT == -1;
+                String totalLabel = continuous ? "unlimited" : String.valueOf(MORTGAGE_APP_COUNT);
+                log.info("  Mortgage application thread started (count={}, interval={}s)",
+                    totalLabel, MORTGAGE_APP_INTERVAL_SECONDS);
+
+                int i = 0;
+                while (continuous || i < MORTGAGE_APP_COUNT) {
                     GenericRecord record = buildMortgageRecord(mortgageSchema, null, i);
                     String key = record.get("customer_email").toString();
                     try {
                         producer.send(new ProducerRecord<>(TOPIC_MORTGAGE_APPLICATIONS, key, record));
                         producer.flush();
-                        log.info("  Mortgage application {} / 20 sent (app_id={})",
-                            i + 1, record.get("application_id"));
+                        log.info("  Mortgage application {} / {} sent (app_id={})",
+                            i + 1, totalLabel, record.get("application_id"));
                     } catch (org.apache.kafka.common.errors.SerializationException e) {
-                        // DQR rule failure — record was routed to DLQ, continue producing
-                        log.info("  Mortgage application {} / 20 routed to DLQ (app_id={}, payslips={})",
-                            i + 1, record.get("application_id"), record.get("payslips"));
+                        log.info("  Mortgage application {} / {} routed to DLQ (app_id={}, payslips={})",
+                            i + 1, totalLabel, record.get("application_id"), record.get("payslips"));
                     }
+                    i++;
 
-                    Thread.sleep(600000);
+                    Thread.sleep(MORTGAGE_APP_INTERVAL_SECONDS * 1000L);
                 }
-                log.info("  Mortgage application thread finished (20 events)");
+                log.info("  Mortgage application thread finished ({} events)", MORTGAGE_APP_COUNT);
+            } catch (InterruptedException e) {
+                log.info("Mortgage application thread interrupted, shutting down");
             } catch (Exception e) {
                 log.error("Mortgage application thread failed", e);
             }
@@ -579,6 +596,10 @@ public class DataGenerator {
         props.put("auto.register.schemas", "false");
         props.put("use.latest.version", "true");
 
+        // Use legacy payload-prefix wire format (magic byte 0x00 + 4-byte schema ID)
+        // instead of header-based schema ID, for compatibility with Flink consumers
+        props.put("value.schema.id.serializer", "io.confluent.kafka.serializers.schema.id.PrefixSchemaIdSerializer");
+
         return new KafkaProducer<>(props);
     }
 
@@ -606,6 +627,14 @@ public class DataGenerator {
             throw new IllegalStateException("Missing required environment variable: " + name);
         }
         return value;
+    }
+
+    private static int envOrDefault(String name, int defaultValue) {
+        String value = System.getenv(name);
+        if (value == null || value.isBlank()) {
+            return defaultValue;
+        }
+        return Integer.parseInt(value);
     }
 
     private static int randomInt(int min, int max) {

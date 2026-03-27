@@ -1,0 +1,24 @@
+# Confluent Cloud credentials
+confluent_cloud_api_key    = ""
+confluent_cloud_api_secret = ""
+
+# AWS region
+cloud_region = "us-east-1"
+
+# MCP server configuration
+mcp_url   = ""
+mcp_token = ""
+
+# Instructor-provided Postgres credentials
+db_host     = ""
+db_port     = 5432
+db_name     = ""
+db_username = "postgres"
+db_password = ""
+
+# AWS Bedrock credentials
+bedrock_access_key_id     = ""
+bedrock_secret_access_key = ""
+
+# Email for mortgage decision notifications
+email_address = ""
