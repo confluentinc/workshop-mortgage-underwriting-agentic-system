@@ -1,20 +1,120 @@
-# Demo Mode
+# Demo Mode — Fully Automated Mortgage Underwriting
 
-Demo mode provides a **fully automated, end-to-end** deployment of the mortgage underwriting agentic system. Unlike the workshop and self-serve modes — where participants manually create Flink SQL statements — demo mode provisions everything via Terraform, including all Flink DDL statements (CTAS, CREATE AGENT, CREATE TOOL).
+Demo mode deploys the **entire mortgage underwriting agentic system** end-to-end with a single `terraform apply`. Unlike workshop and self-serve modes — where participants manually create Flink SQL statements — demo mode provisions all Flink DDL statements (CTAS, CREATE AGENT, CREATE TOOL) automatically via Terraform.
 
-## What gets deployed
+![Architecture](../../assets/HLD.png)
 
-1. **Base infrastructure** (shared with workshop/self-serve):
-   - Confluent Cloud environment, Kafka cluster, Schema Registry
-   - Flink compute pool, service accounts, API keys
-   - Kafka topics (`mortgage_applications`, `payment_history`, `incomplete_mortgage_applications`)
-   - AVRO schemas with data quality rules
-   - Postgres CDC Source connector
-   - LLM model (Claude on Amazon Bedrock) and MCP connection
-   - Data generator container (1 mortgage app/minute, continuous)
-   - Webapp container
+## Prerequisites
 
-2. **Flink statements** (demo mode only):
+Before starting, make sure you have:
+
+| Requirement | Check |
+|-------------|-------|
+| **Confluent Cloud account** with [API Keys](https://docs.confluent.io/cloud/current/security/authenticate/workload-identities/service-accounts/api-keys/overview.html#resource-scopes) (`Cloud resource management` permissions) | [Sign up here](https://cnfl.io/dswt2026) |
+| **Terraform** v1.5.7+ | `brew install terraform` or [download](https://www.terraform.io/downloads.html) |
+| **Git CLI** | `brew install git` |
+| **Container runtime** (Docker Desktop, Colima, or Podman) | Install one runtime |
+
+
+<details>
+<summary>Installing prerequisites on MAC</summary>
+
+1. Install dependencies:
+   ```bash
+   brew install git terraform
+   ```
+
+2. Install a container runtime:
+   ```bash
+   brew install colima docker
+   # brew install --cask docker       # Docker Desktop
+   # brew install podman              # Podman
+   ```
+
+</details>
+
+<details>
+<summary>Installing prerequisites on Windows</summary>
+
+1. Install dependencies:
+   ```powershell
+   winget install --id Git.Git -e
+   winget install --id Hashicorp.Terraform -e
+   ```
+
+2. Install a container runtime:
+   ```powershell
+   winget install --id Docker.DockerDesktop -e
+   # Alternatively, install Podman: winget install --id RedHat.Podman -e
+   ```
+
+</details>
+
+## Setup
+
+1. Clone the repo and change directory to the terraform demo_mode directory:
+   ```
+   git clone https://github.com/confluentinc/workshop-mortgage-underwriting-agentic-system.git
+   cd workshop-mortgage-underwriting-agentic-system/terraform/demo_mode
+   ```
+
+2. Rename the template file and update it with your values:
+   **Mac/Linux:**
+   ```bash
+   mv terraform.tfvars.example terraform.tfvars
+   ```
+   **Windows:**
+   ```cmd
+   ren terraform.tfvars.example terraform.tfvars
+   ```
+   Open `terraform.tfvars` in your editor and replace the following placeholders:
+
+   | Variable | Where to get it |
+   |----------|----------------|
+   | `confluent_cloud_api_key` | Your Confluent Cloud API key |
+   | `confluent_cloud_api_secret` | Your Confluent Cloud API secret |
+   | `mcp_url` | Provided by your instructor |
+   | `mcp_token` | Provided by your instructor |
+   | `bedrock_access_key_id` | Provided by your instructor |
+   | `bedrock_secret_access_key` | Provided by your instructor |
+   | `db_host` | Provided by your instructor |
+   | `db_name` | Provided by your instructor (e.g. `app1`, `app27`) |
+   | `db_password` | Provided by your instructor |
+   | `email_address` | Your email address (for mortgage decision notifications) |
+
+> [!CAUTION]
+> **Your container runtime must be running before deploying Terraform.**
+> Terraform needs a running container runtime (Docker, Colima, or Podman) to build and start the webapp container. If it is not running, `terraform apply` will fail.
+
+3. Verify your container runtime is running
+
+   | Runtime | Check status | Start |
+   |---------|-------------|-------|
+   | Docker Desktop | `docker info` | Open Docker Desktop |
+   | Colima | `colima status` | `colima start` |
+   | Podman | `podman machine info` | `podman machine start` |
+
+4. Initialize and deploy Terraform
+
+   ```bash
+   terraform init
+   terraform apply --auto-approve
+   ```
+
+> [!IMPORTANT]
+> Terraform will take around 10 minutes to deploy.
+
+## What Gets Deployed
+
+Terraform automatically deploys:
+
+1. **Base infrastructure**: Confluent Cloud environment, Kafka cluster, Schema Registry, Flink compute pool, service accounts, API keys, topics, schemas with data quality rules.
+2. **Postgres CDC Source Connector**: Streams credit score data from Postgres to Confluent Cloud.
+3. **LLM model**: Claude on Amazon Bedrock, registered as a Flink SQL model.
+4. **MCP connection**: For external tool access (email sending).
+5. **Data generator container** (`mortgage-datagen`): Seeds historical data, then produces **1 mortgage application per minute** continuously (starting after a 10-minute delay).
+6. **Webapp container**: Local webapp at http://localhost:5001 for submitting applications.
+7. **All Flink DDL statements** (deployed sequentially):
    - `enriched_mortgage_applications` — Joins mortgage apps with CDC credit score data
    - `applicant_payment_summary` — Aggregates payment history per applicant
    - `enriched_mortgage_with_payments` — Temporal join combining enriched apps with payments
@@ -24,66 +124,80 @@ Demo mode provides a **fully automated, end-to-end** deployment of the mortgage 
    - `mortgage_decisions_agent` — AI agent for mortgage approval/rejection decisions
    - `mortgage_decisions` — Applies decision agent and sends email notifications
 
-## Prerequisites
+## Post-Deployment Verification
 
-- [Terraform](https://developer.hashicorp.com/terraform/install) (>= 1.0)
-- [Docker](https://docs.docker.com/get-docker/) or [Podman](https://podman.io/getting-started/installation)
-- [Confluent Cloud account](https://confluent.cloud) with an API key
-- AWS account with Bedrock access (Claude model enabled)
-- PostgreSQL database with CDC enabled
-- MCP server endpoint (e.g., Zapier MCP)
+> [!CAUTION]
+> **Do not stop the data generator container (`mortgage-datagen`).** It must run continuously to advance Flink watermarks. Stopping it will break the pipeline.
 
-## Setup
+> **Note:** The data generator waits 10 minutes after startup before producing mortgage applications. After that, it produces a new mortgage application every minute.
 
-1. Navigate to the demo mode directory:
-
-   ```bash
-   cd terraform/demo_mode
+1. Verify the data generator is running:
+   ```
+   docker logs mortgage-datagen
    ```
 
-2. Copy the example variables file and fill in your values:
+2. To verify that the data has been successfully generated, go to the [Confluent Cloud Topic UI](https://confluent.cloud/go/topics). Select your environment and cluster, then click on the `payment_history` topic to confirm that data is being produced.
 
-   ```bash
-   cp terraform.tfvars.example terraform.tfvars
+   ![Verify topics](../../assets/verify.png)
+
+3. In the [Connectors UI](https://confluent.cloud/go/connectors), verify that the Postgres CDC Source Connector is listed and shows a **Running** status.
+
+   ![Verify connector](../../assets/verify-connector.png)
+
+4. In the [Flink UI](https://confluent.cloud/go/flink), verify that all Flink statements are running. You should see the following statements:
+
+   - `enriched-mortgage-applications-materializer`
+   - `applicant-payment-summary-materializer`
+   - `enriched-mortgage-payments-materializer`
+   - `mortgage-risk-agent-create`
+   - `mortgage-risk-agent`
+   - `send-email-tool-create`
+   - `mortgage-decisions-agent-create`
+   - `mortgage-decisions-agent`
+
+5. Once mortgage applications start flowing (after 10 minutes), you should begin receiving mortgage decision emails at the `email_address` you configured.
+
+### Submit a Mortgage Application from the Website
+
+Submit a Mortgage application for `John Doe` - an applicant with high-credit-score.
+
+1. Open http://localhost:5001 in your browser.
+2. Submit a new application using the following details:
+
+
+   - **Full Name**: `John Doe`
+   - **Property Value:** `200000`
+   - **Loan Amount**: `150000`
+   - **Annual Income:** `500000`
+
+> [!NOTE]
+> The name must be John Doe to match an existing applicant with a known high credit score.
+> The loan amount must be less than or equal to the property value.
+
+   ![Submit application](../../assets/demo1.png)
+
+3. To verify that the data has been successfully generated, go to the [Confluent Cloud Topic UI](https://confluent.cloud/go/topics). Select your environment and cluster, then click on the `mortgage_applications`, you should see the new application there.
+
+4. In the [Flink UI](https://confluent.cloud/go/flink), open a SQL workspace and verify John's application flows through the pipeline:
+
+   ```sql
+   SELECT * FROM enriched_mortgage_with_payments WHERE borrower_name = 'John Doe';
    ```
 
-3. Edit `terraform.tfvars` with your credentials:
-
-   | Variable | Description |
-   |----------|-------------|
-   | `confluent_cloud_api_key` | Confluent Cloud API key |
-   | `confluent_cloud_api_secret` | Confluent Cloud API secret |
-   | `cloud_region` | AWS region (default: `us-east-1`) |
-   | `mcp_endpoint` | MCP server URL |
-   | `mcp_token` | MCP authentication token |
-   | `db_host` | PostgreSQL hostname |
-   | `db_name` | PostgreSQL database name |
-   | `db_password` | PostgreSQL password |
-   | `bedrock_access_key` | AWS access key for Bedrock |
-   | `bedrock_secret_key` | AWS secret key for Bedrock |
-   | `email_address` | Email to receive mortgage decision notifications |
-
-4. Initialize and apply:
-
-   ```bash
-   terraform init
-   terraform apply
+   ```sql
+   SELECT * FROM mortgage_validated_apps WHERE borrower_name = 'John Doe';
    ```
 
-## What to expect
-
-After `terraform apply` completes:
-
-1. **Immediately**: Base infrastructure is provisioned — Kafka cluster, topics, schemas, connectors, and the data generator container start.
-2. **Within ~2 minutes**: Historical payment data (701 events) and credit scores (702 rows) are seeded.
-3. **After 10 minutes**: The data generator begins producing mortgage applications at a rate of **1 application per minute**, continuously.
-4. **Flink statements** deploy sequentially. As mortgage applications flow in, they are enriched, assessed by the risk agent, and processed by the decision agent.
-5. **Mortgage decision emails** are sent to the configured `email_address` for each processed application.
+   ```sql
+   SELECT * FROM mortgage_decisions WHERE borrower_name = 'John Doe';
+   ```
 
 ## Clean-up
 
-To destroy all resources:
+Once you are finished with this demo, remember to destroy the resources you created, to avoid incurring charges. You can always spin it up again anytime you want.
 
-```bash
+To destroy all the resources created (including the Postgres CDC connector, data generator, and webapp containers) run the command below from the `terraform/demo_mode` directory:
+
+```
 terraform destroy --auto-approve
 ```
