@@ -7,6 +7,10 @@ resource "null_resource" "webapp_container_windows" {
     requirements_hash = filemd5(join("/", [path.root, "..", "..", "webapp", "requirements.txt"]))
   }
 
+  depends_on = [
+    confluent_schema.avro-mortgage_applications
+  ]
+
   provisioner "local-exec" {
     interpreter = ["PowerShell", "-Command"]
     command = <<-EOT
@@ -50,6 +54,10 @@ resource "null_resource" "webapp_container_unix" {
     app_hash          = filemd5(join("/", [path.root, "..", "..", "webapp", "app.py"]))
     requirements_hash = filemd5(join("/", [path.root, "..", "..", "webapp", "requirements.txt"]))
   }
+
+  depends_on = [
+    confluent_schema.avro-mortgage_applications
+  ]
 
   provisioner "local-exec" {
     interpreter = ["bash", "-c"]

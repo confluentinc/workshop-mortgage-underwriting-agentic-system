@@ -34,10 +34,11 @@ public class DataGenerator {
     private static final AtomicInteger txIdCounter = new AtomicInteger(3000000);
 
     // In-memory applicant cache (preloaded from Postgres to avoid per-event DB queries)
-    private static List<Map<String, Object>> highCreditApplicants = new ArrayList<>();
-    private static List<Map<String, Object>> mediumCreditApplicants = new ArrayList<>();
-    private static List<Map<String, Object>> lowCreditApplicants = new ArrayList<>();
-    private static List<Map<String, Object>> allApplicants = new ArrayList<>();
+    // Using CopyOnWriteArrayList for thread-safe reads/writes across Stage 3 threads
+    private static List<Map<String, Object>> highCreditApplicants = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private static List<Map<String, Object>> mediumCreditApplicants = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private static List<Map<String, Object>> lowCreditApplicants = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private static List<Map<String, Object>> allApplicants = new java.util.concurrent.CopyOnWriteArrayList<>();
 
     // Environment variables
     private static final String KAFKA_BOOTSTRAP_SERVERS = env("KAFKA_BOOTSTRAP_SERVERS");
@@ -51,6 +52,12 @@ public class DataGenerator {
     private static final String PG_DATABASE = env("PG_DATABASE");
     private static final String PG_USERNAME = env("PG_USERNAME");
     private static final String PG_PASSWORD = env("PG_PASSWORD");
+
+    // Configurable mortgage application parameters
+    private static final int MORTGAGE_APP_INTERVAL_SECONDS = envOrDefault("MORTGAGE_APP_INTERVAL_SECONDS", 600);
+    private static final int MORTGAGE_APP_COUNT = envOrDefault("MORTGAGE_APP_COUNT", 20);
+    private static final int MORTGAGE_APP_STARTUP_DELAY_SECONDS = envOrDefault("MORTGAGE_APP_STARTUP_DELAY_SECONDS", 0);
+    private static final int NEW_APPLICANT_INTERVAL_SECONDS = envOrDefault("NEW_APPLICANT_INTERVAL_SECONDS", 0);
 
     // Topics
     private static final String TOPIC_MORTGAGE_APPLICATIONS = "mortgage_applications";
@@ -227,26 +234,38 @@ public class DataGenerator {
         Schema mortgageSchema = getSchema(TOPIC_MORTGAGE_APPLICATIONS + "-value");
         Schema paymentSchema = getSchema(TOPIC_PAYMENT_HISTORY + "-value");
 
-        // Thread 1: Mortgage applications (20 events, 10 min throttle)
+        // Thread 1: Mortgage applications (configurable count and interval)
         Thread mortgageThread = new Thread(() -> {
             try (KafkaProducer<String, GenericRecord> producer = createProducer()) {
-                for (int i = 0; i < 20; i++) {
+                log.info("  Mortgage application thread waiting {} seconds before starting...",
+                    MORTGAGE_APP_STARTUP_DELAY_SECONDS);
+                Thread.sleep(MORTGAGE_APP_STARTUP_DELAY_SECONDS * 1000L);
+
+                boolean continuous = MORTGAGE_APP_COUNT == -1;
+                String totalLabel = continuous ? "unlimited" : String.valueOf(MORTGAGE_APP_COUNT);
+                log.info("  Mortgage application thread started (count={}, interval={}s)",
+                    totalLabel, MORTGAGE_APP_INTERVAL_SECONDS);
+
+                int i = 0;
+                while (continuous || i < MORTGAGE_APP_COUNT) {
                     GenericRecord record = buildMortgageRecord(mortgageSchema, null, i);
                     String key = record.get("customer_email").toString();
                     try {
                         producer.send(new ProducerRecord<>(TOPIC_MORTGAGE_APPLICATIONS, key, record));
                         producer.flush();
-                        log.info("  Mortgage application {} / 20 sent (app_id={})",
-                            i + 1, record.get("application_id"));
+                        log.info("  Mortgage application {} / {} sent (app_id={})",
+                            i + 1, totalLabel, record.get("application_id"));
                     } catch (org.apache.kafka.common.errors.SerializationException e) {
-                        // DQR rule failure — record was routed to DLQ, continue producing
-                        log.info("  Mortgage application {} / 20 routed to DLQ (app_id={}, payslips={})",
-                            i + 1, record.get("application_id"), record.get("payslips"));
+                        log.info("  Mortgage application {} / {} routed to DLQ (app_id={}, payslips={})",
+                            i + 1, totalLabel, record.get("application_id"), record.get("payslips"));
                     }
+                    i++;
 
-                    Thread.sleep(600000);
+                    Thread.sleep(MORTGAGE_APP_INTERVAL_SECONDS * 1000L);
                 }
-                log.info("  Mortgage application thread finished (20 events)");
+                log.info("  Mortgage application thread finished ({} events)", MORTGAGE_APP_COUNT);
+            } catch (InterruptedException e) {
+                log.info("Mortgage application thread interrupted, shutting down");
             } catch (Exception e) {
                 log.error("Mortgage application thread failed", e);
             }
@@ -275,13 +294,78 @@ public class DataGenerator {
             }
         }, "payment-thread");
 
+        // Thread 3: New applicant insertion into Postgres (optional, disabled by default)
+        Thread applicantThread = null;
+        if (NEW_APPLICANT_INTERVAL_SECONDS > 0) {
+            applicantThread = new Thread(() -> {
+                try (Connection conn = getPostgresConnection()) {
+                    String insertSql = """
+                        INSERT INTO applicant_credit_score
+                            (applicant_id, applicant_name, credit_score, credit_utilization,
+                             open_credit_accounts, total_credit_limit, public_records)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        ON CONFLICT (applicant_id) DO NOTHING
+                        """;
+                    int count = 0;
+                    while (!Thread.currentThread().isInterrupted()) {
+                        // Weighted credit tier: 1/10 high, 7/10 medium, 2/10 low
+                        int tier = weightedChoice(Map.of(0, 1, 1, 7, 2, 2));
+                        int scoreMin, scoreMax;
+                        int publicRecords;
+                        switch (tier) {
+                            case 0 -> { scoreMin = 750; scoreMax = 850; publicRecords = 0; }
+                            case 1 -> { scoreMin = 501; scoreMax = 750; publicRecords = weightedChoice(Map.of(0, 9, 1, 1)); }
+                            default -> { scoreMin = 300; scoreMax = 500; publicRecords = weightedChoice(Map.of(0, 1, 1, 1, 2, 2, 3, 3, 4, 3)); }
+                        }
+
+                        String applicantId = UUID.randomUUID().toString();
+                        String name = faker.name().fullName();
+                        try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+                            addCreditScoreBatch(ps, applicantId, name,
+                                randomInt(scoreMin, scoreMax),
+                                randomDecimal(0, 100, 1),
+                                randomInt(0, 5),
+                                randomInt(1000, 50000),
+                                publicRecords);
+                            ps.executeBatch();
+                        }
+
+                        // Add to in-memory cache
+                        Map<String, Object> newApplicant = Map.of(
+                            "applicant_id", applicantId,
+                            "applicant_name", name
+                        );
+                        allApplicants.add(newApplicant);
+                        int score = randomInt(scoreMin, scoreMax);
+                        if (score >= 750) highCreditApplicants.add(newApplicant);
+                        else if (score >= 501) mediumCreditApplicants.add(newApplicant);
+                        else lowCreditApplicants.add(newApplicant);
+
+                        count++;
+                        log.info("  New applicant {} inserted (id={}, name={})", count, applicantId, name);
+
+                        Thread.sleep(NEW_APPLICANT_INTERVAL_SECONDS * 1000L);
+                    }
+                } catch (InterruptedException e) {
+                    log.info("Applicant thread interrupted, shutting down");
+                } catch (Exception e) {
+                    log.error("Applicant thread failed", e);
+                }
+            }, "applicant-thread");
+        }
+
         mortgageThread.start();
         paymentThread.start();
+        if (applicantThread != null) {
+            applicantThread.start();
+            log.info("New applicant thread started (interval={}s)", NEW_APPLICANT_INTERVAL_SECONDS);
+        }
 
-        // Wait for both threads (payment thread runs indefinitely)
+        // Wait for threads (payment thread runs indefinitely)
         mortgageThread.join();
         log.info("Mortgage thread finished. Payment thread continues running. Press Ctrl+C to stop.");
         paymentThread.join();
+        if (applicantThread != null) applicantThread.join();
     }
 
     // ========================================================================
@@ -579,6 +663,10 @@ public class DataGenerator {
         props.put("auto.register.schemas", "false");
         props.put("use.latest.version", "true");
 
+        // Use legacy payload-prefix wire format (magic byte 0x00 + 4-byte schema ID)
+        // instead of header-based schema ID, for compatibility with Flink consumers
+        props.put("value.schema.id.serializer", "io.confluent.kafka.serializers.schema.id.PrefixSchemaIdSerializer");
+
         return new KafkaProducer<>(props);
     }
 
@@ -606,6 +694,14 @@ public class DataGenerator {
             throw new IllegalStateException("Missing required environment variable: " + name);
         }
         return value;
+    }
+
+    private static int envOrDefault(String name, int defaultValue) {
+        String value = System.getenv(name);
+        if (value == null || value.isBlank()) {
+            return defaultValue;
+        }
+        return Integer.parseInt(value);
     }
 
     private static int randomInt(int min, int max) {

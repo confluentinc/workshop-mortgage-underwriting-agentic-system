@@ -6,18 +6,17 @@ from confluent_kafka.schema_registry.avro import AvroSerializer
 import json
 import os
 import uuid
-import time
 from datetime import datetime
 from dotenv import load_dotenv
 import random
-import string
 
 load_dotenv()
 
 app = Flask(__name__)
 
-# Avro schema definition
-AVRO_SCHEMA = {
+# Hardcoded Avro schema matching the SR schema but without flink-specific annotations
+# This ensures fastavro serializes timestamp-millis as a plain long
+VALUE_SCHEMA_STR = json.dumps({
     "type": "record",
     "name": "MortgageApplication",
     "fields": [
@@ -32,12 +31,9 @@ AVRO_SCHEMA = {
         {"name": "property_state", "type": "string"},
         {"name": "payslips", "type": "string"},
         {"name": "employment_status", "type": "string"},
-        {"name": "application_ts", "type": {
-            "type": "long",
-            "logicalType": "local-timestamp-millis"
-        }}
+        {"name": "application_ts", "type": {"type": "long", "logicalType": "timestamp-millis", "flink.precision": 3, "flink.version": "1"}},
     ]
-}
+})
 
 # List of US states
 US_STATES = [
@@ -52,21 +48,18 @@ US_STATES = [
 EMPLOYMENT_STATUSES = ["EMPLOYED", "SELF_EMPLOYED", "RETIRED", "UNEMPLOYED"]
 
 def generate_random_email(name):
-    """Generate a random email based on the name"""
     domains = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com"]
     name_parts = name.lower().split()
     username = "".join(name_parts) + str(random.randint(1000, 9999))
     return f"{username}@{random.choice(domains)}"
 
 def generate_random_address():
-    """Generate a random US address"""
     street_numbers = [str(random.randint(1, 9999))]
     street_names = ["Main", "Oak", "Pine", "Maple", "Cedar", "Elm", "Washington", "Lincoln", "Jefferson"]
     street_types = ["St", "Ave", "Blvd", "Rd", "Ln", "Dr"]
     return f"{random.choice(street_numbers)} {random.choice(street_names)} {random.choice(street_types)}"
 
 def generate_random_payslips(applicant_id):
-    """Generate payslip references using applicant ID in the format s3://riverbank-payslip-bucket/[a-zA-Z0-9._/-]+"""
     return f"s3://riverbank-payslip-bucket/{applicant_id}"
 
 # Schema Registry configuration
@@ -75,14 +68,12 @@ schema_registry_conf = {
     'basic.auth.user.info': f"{os.getenv('SCHEMA_REGISTRY_API_KEY')}:{os.getenv('SCHEMA_REGISTRY_API_SECRET')}"
 }
 
-# Create Schema Registry client
+# Create Schema Registry client and Avro serializer
 schema_registry_client = SchemaRegistryClient(schema_registry_conf)
-
-# Create Avro serializer
 avro_serializer = AvroSerializer(
     schema_registry_client,
-    json.dumps(AVRO_SCHEMA),
-    lambda obj, ctx: obj
+    VALUE_SCHEMA_STR,
+    conf={'auto.register.schemas': False}
 )
 
 # Kafka configuration
@@ -104,7 +95,7 @@ def home():
 def submit_application():
     try:
         data = request.json
-        
+
         # Validate required fields
         required_fields = ['name', 'property_value', 'loan_amount', 'annual_income']
         for field in required_fields:
@@ -113,7 +104,7 @@ def submit_application():
 
         # Generate unique IDs
         application_id = str(uuid.uuid4())
-        
+
         # Set applicant_id based on customer name
         customer_name = data['name'].strip()
         if customer_name.lower() == 'john doe':
@@ -126,7 +117,7 @@ def submit_application():
             applicant_id = f'C-3{random.randint(10000, 99999)}'
             random_employment_status = random.choice(EMPLOYMENT_STATUSES)
 
-        # Generate random values for the specified fields
+        # Generate random values
         random_email = generate_random_email(data['name'])
         random_address = generate_random_address()
         random_state = random.choice(US_STATES)
@@ -148,17 +139,15 @@ def submit_application():
             "application_ts": int(datetime.now().timestamp() * 1000)
         }
 
-        # Serialize to Avro using the Schema Registry
-        serialized_value = avro_serializer(
-            avro_record,
-            SerializationContext('mortgage_applications', MessageField.VALUE)
-        )
+        # Serialize using AvroSerializer (auto-registers schema, uses default prefix wire format)
+        ctx = SerializationContext('mortgage_applications', MessageField.VALUE)
+        serialized_value = avro_serializer(avro_record, ctx)
 
-        # Send to Kafka topic
+        # Send to Kafka
         producer.produce(
             'mortgage_applications',
             key=random_email.encode('utf-8'),
-            value=serialized_value
+            value=serialized_value,
         )
         producer.flush()
 
@@ -167,4 +156,4 @@ def submit_application():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000) 
+    app.run(debug=True, host='0.0.0.0', port=5000)
