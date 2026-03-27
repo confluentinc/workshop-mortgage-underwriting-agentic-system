@@ -106,7 +106,7 @@ Before starting, make sure you have:
 
 ## What Gets Deployed
 
-Terraform automatically deploys:
+Terraform automatically deploys the entire pipeline — from infrastructure to AI agents — with a single `terraform apply`:
 
 1. **Base infrastructure**: Confluent Cloud environment, Kafka cluster, Schema Registry, Flink compute pool, service accounts, API keys, topics, schemas with data quality rules.
 2. **Postgres CDC Source Connector**: Streams credit score data from Postgres to Confluent Cloud.
@@ -114,7 +114,7 @@ Terraform automatically deploys:
 4. **MCP connection**: For external tool access (email sending).
 5. **Data generator container** (`mortgage-datagen`): Seeds historical data, then produces **1 mortgage application per minute** continuously (starting after a 10-minute delay).
 6. **Webapp container**: Local webapp at http://localhost:5001 for submitting applications.
-7. **All Flink DDL statements** (deployed sequentially):
+7. **The entire Flink pipeline** — All Flink DDL statements are deployed sequentially to preserve dependencies:
    - `enriched_mortgage_applications` — Joins mortgage apps with CDC credit score data
    - `applicant_payment_summary` — Aggregates payment history per applicant
    - `enriched_mortgage_with_payments` — Temporal join combining enriched apps with payments
