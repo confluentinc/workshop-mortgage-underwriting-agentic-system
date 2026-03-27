@@ -14,15 +14,17 @@ PROD.public.applicant_credit_score ──┘          applicant_payment_summary 
                                                  payment_history ─────────┘
 ```
 
+**Data flow**: Mortgage applications and payment history are produced to Kafka by the data generator. Credit scores are sourced from Postgres via CDC connector. Flink SQL enriches mortgage apps with credit scores and payment history using joins. Two AI agents then process the enriched data — one for fraud/risk assessment, one for approval/rejection decisions and email notifications.
+
 ## Deployment Modes
 
 | Mode | Directory | Description |
 |------|-----------|-------------|
 | **Workshop** | `terraform/workshop/` | Instructor provides Postgres DB and Bedrock credentials. Participants manually create Flink SQL statements in Labs 1 & 2. |
 | **Self-serve** | `terraform/self-serve/` | Terraform provisions AWS infrastructure (EC2 Postgres, IAM for Bedrock) in addition to base. Participants still do labs manually. |
-| **Demo** | `terraform/demo_mode/` | Fully automated — all Flink DDL statements deployed via Terraform. Data gen runs continuously at 1 app/min. |
+| **Demo** | `terraform/demo_mode/` | Fully automated — all Flink DDL statements deployed via Terraform. Data gen runs continuously. |
 
-All three modes use `module.base` (`terraform/modules/base/`). Demo mode additionally uses `module.flink_statements` (`terraform/modules/flink-statements/`).
+All three modes use `module.base` (`terraform/modules/base/`). Demo mode additionally uses `module.flink_statements` (`terraform/modules/flink-statements/`). Self-serve additionally uses `module.aws` (`terraform/modules/aws/`).
 
 ## Directory Structure
 
@@ -50,41 +52,89 @@ lab2/                      # Lab 2 instructions: AI agents for risk assessment +
 
 ### Data Generator (`terraform/data-gen/datagen-app/`)
 - **Image**: `ghcr.io/ahmedszamzam/datagen:latest` — single image for all modes, behavior controlled by env vars
-- **Stage 1**: Seeds 702 credit scores into Postgres (100 high, 500 medium, 100 low + John Doe + Omar Soli)
-- **Stage 2**: Produces 701 historical payment events to Kafka (no throttle)
-- **Stage 3**: Two parallel threads:
-  - **Mortgage apps**: Configurable via env vars `MORTGAGE_APP_INTERVAL_SECONDS` (default 600), `MORTGAGE_APP_COUNT` (default 20, -1 for continuous), `MORTGAGE_APP_STARTUP_DELAY_SECONDS` (default 0). The startup delay only applies to the mortgage application thread — payments start immediately.
-  - **Payments**: Continuous, 5-10s throttle, runs indefinitely (no cap), starts immediately (no delay)
-- Workshop/self-serve use defaults (20 apps, 10-min interval, no startup delay). Demo mode passes 60s interval, continuous, no startup delay.
-- After any code change, rebuild and push the image to GHCR. All three modes pull the same image.
+- **Java 17**, Maven, uses Kafka Avro serializer + JavaFaker + PostgreSQL JDBC
+
+#### Stage 1: Seed Postgres (immediate, no throttle)
+- Creates `applicant_credit_score` table and inserts 702 rows:
+  - 100 high credit (750-850 score, 0 public records)
+  - 500 medium credit (501-750 score)
+  - 100 low credit (300-500 score)
+  - John Doe (`C-100000`) — score 800-850, 0 defaults, guaranteed high credit
+  - Omar Soli (`C-200000`) — score 300-350, 5 defaults, guaranteed low credit
+
+#### Stage 2: Historical Payments (immediate, no throttle)
+- Preloads all applicants from Postgres into in-memory cache (thread-safe `CopyOnWriteArrayList`)
+- Sends 701 payment events to Kafka `payment_history` topic with random dates up to 365 days in past
+- 1 guaranteed successful payment for John Doe
+
+#### Stage 3: Continuous Stream (3 parallel threads)
+
+**Thread 1 — Mortgage Applications**
+- Waits `MORTGAGE_APP_STARTUP_DELAY_SECONDS` (default 0) before starting
+- Produces `MORTGAGE_APP_COUNT` apps (default 20, -1 = continuous)
+- Interval: `MORTGAGE_APP_INTERVAL_SECONDS` (default 600)
+- Picks applicants randomly from in-memory cache (999/1000 valid, 1/1000 = "-1" unmatched)
+- Property values: 13/14 standard (100K-500K), 1/14 high (1M-1.5M)
+- First 3 apps have payslips = "N/A", then 5/6 valid S3 URIs, 1/6 "N/A" (triggers DLQ)
+
+**Thread 2 — Payments**
+- Starts immediately, runs forever, no cap
+- 1 payment every 5-10 seconds (random throttle)
+- Weighted tiers: high credit (200) → 100% success, John Doe (1) → 100% success, medium (200) → 90% success, low (200) → 20% success, Omar Soli (1) → 20% success
+
+**Thread 3 — New Applicants** (optional, disabled by default)
+- Controlled by `NEW_APPLICANT_INTERVAL_SECONDS` (default 0 = disabled)
+- Inserts new random applicants into Postgres `applicant_credit_score` table
+- Weighted tiers: 10% high, 70% medium, 20% low
+- Adds to in-memory cache so mortgage apps and payments can reference them immediately
+- CDC connector picks them up automatically and they appear in Flink
+
+#### Data Generator Parameters by Mode
+
+| Parameter | Env Var | Default | Workshop/Self-serve | Demo |
+|-----------|---------|---------|---------------------|------|
+| Mortgage interval | `MORTGAGE_APP_INTERVAL_SECONDS` | 600 | 600 (default) | 30 |
+| Mortgage count | `MORTGAGE_APP_COUNT` | 20 | 20 (default) | -1 (continuous) |
+| Startup delay | `MORTGAGE_APP_STARTUP_DELAY_SECONDS` | 0 | 0 (default) | 0 (default) |
+| New applicant interval | `NEW_APPLICANT_INTERVAL_SECONDS` | 0 | 0 (disabled) | 60 |
+
+Workshop/self-serve don't pass these values — they use defaults. Demo mode sets them in `demo_mode/main.tf`. The values are passed to the container via the `.datagen.env` file generated by `modules/base/outputs.tf`.
 
 ### Flink Statements Module (`terraform/modules/flink-statements/`)
 8 statements deployed sequentially via `depends_on`:
-1. CTAS `enriched_mortgage_applications` — joins mortgage apps with credit scores
-2. CTAS `applicant_payment_summary` — aggregates payment history
-3. CTAS `enriched_mortgage_with_payments` — temporal join (no property_value filter in demo mode)
-4. CREATE AGENT `mortgage_risk_agent` — fraud/credit risk assessment
-5. CTAS `mortgage_validated_apps` — applies risk agent via AI_RUN_AGENT
-6. CREATE TOOL `send_email` — MCP tool for gmail
-7. CREATE AGENT `mortgage_decisions_agent` — approval/rejection decisions
-8. CTAS `mortgage_decisions` — applies decision agent, sends email (uses `var.email_address`)
+1. CTAS `enriched_mortgage_applications` — joins mortgage apps with credit scores from CDC
+2. CTAS `applicant_payment_summary` — aggregates payment history per applicant using ARRAY_AGG
+3. CTAS `enriched_mortgage_with_payments` — temporal join (LEFT JOIN FOR SYSTEM_TIME AS OF), no property_value filter
+4. CREATE AGENT `mortgage_risk_agent` — Flink Streaming Agent for fraud/credit risk assessment, outputs JSON with fraud_risk_score, loan_stack_risk, risk_category, agent_reasoning
+5. CTAS `mortgage_validated_apps` — applies risk agent via LATERAL TABLE + AI_RUN_AGENT
+6. CREATE TOOL `send_email` — MCP tool using `mcp_connection` for gmail_send_email
+7. CREATE AGENT `mortgage_decisions_agent` — Flink SQL Agent for approval/rejection, uses send_email tool
+8. CTAS `mortgage_decisions` — applies decision agent, extracts decision/interest_rate/explanation/letter_body, sends email to `var.email_address`
 
 ### Base Module (`terraform/modules/base/`)
-- Confluent Cloud: environment, Kafka cluster (Standard, AWS), Schema Registry (Advanced governance)
+- Confluent Cloud: environment, Kafka cluster (Standard, single-zone, AWS), Schema Registry (Advanced governance)
 - Flink compute pool (20 max CFU)
 - Service account with EnvironmentAdmin role binding
+- API keys: Kafka, Schema Registry, Flink management
 - Topics: `mortgage_applications`, `payment_history`, `incomplete_mortgage_applications` (DLQ)
-- AVRO schemas with data quality rules (payslip URI validation → DLQ routing)
-- Postgres CDC Source Connector (Debezium)
-- Bedrock connection + LLM model (`llm_textgen_model` — Claude 3.7 Sonnet)
-- MCP connection for external tool access
-- `alter_credit_score_table` statement — sets changelog mode to 'append' on CDC topic
-- Data generator and webapp Docker containers
+- AVRO schemas with data quality rules (CEL validation: payslip URI must match `^s3://riverbank-payslip-bucket/[a-zA-Z0-9._/-]+$` → DLQ routing on failure)
+- Postgres CDC Source Connector (Debezium v2, table `public.applicant_credit_score`, topic prefix `PROD`)
+- `alter_credit_score_table` Flink statement — sets `changelog.mode = 'append'` on CDC topic (required for joining)
+- Bedrock connection + LLM model (`llm_textgen_model` — Claude 3.7 Sonnet, 50K max tokens)
+- MCP connection (configurable endpoint + transport type) for external tool access
+- Data generator Docker container (`mortgage-datagen`) — pulls from GHCR, passes env vars via `.datagen.env`
+- Webapp Docker container (`mortgage-webapp`) — built locally from `webapp/Dockerfile`, port 5001→5000
+- Outputs 9 values for flink-statements module: org_id, env_id, display names, flink pool, API keys, service account
 
 ### Webapp (`webapp/`)
-- Flask app on port 5000 (mapped to 5001)
-- Submits mortgage applications to Kafka via Avro serializer
-- Special applicants: "John Doe" → `C-100000` (high credit), "Omar Soli" → `C-200000` (low credit)
+- Flask app on port 5000 (mapped to 5001 via Docker)
+- Submits mortgage applications to Kafka `mortgage_applications` topic via Avro serializer
+- Uses Schema Registry for serialization (auto-register disabled, uses latest version)
+- Special applicants hardcoded by name:
+  - "John Doe" → `C-100000` (high credit), always `Full-employed`
+  - "Omar Soli" → `C-200000` (low credit), always `self-employed`
+  - Any other name → random `C-3XXXXX` ID, random employment status
+- Webapp submits: application_id (UUID), customer_email (random), property_value, loan_amount, income (from form), property_address/state (random), payslips (S3 URI using applicant_id), application_ts (current millis)
 
 ## Variable Naming Conventions
 
@@ -93,8 +143,11 @@ Workshop and demo_mode use the same variable names:
 - `bedrock_access_key_id` / `bedrock_secret_access_key` (not `bedrock_access_key` / `bedrock_secret_key`)
 - `db_name` has validation: must match `^app[0-9]{1,3}$`
 - `mcp_transport_type` hardcoded to `""` in workshop/demo_mode entry points
+- `email_address` is a required variable in demo_mode only (used in mortgage_decisions CTAS)
 
-Self-serve uses different names (maps internally to base module vars).
+Self-serve uses different names and maps internally to base module vars. Self-serve also provisions its own AWS infra (module.aws) and passes those outputs to module.base.
+
+The base module uses internal names: `mcp_endpoint`, `bedrock_access_key`, `bedrock_secret_key`. Each entry point maps its variable names to these.
 
 ## Common Commands
 
@@ -134,9 +187,14 @@ docker push ghcr.io/ahmedszamzam/datagen:latest
 ```
 All three modes pull the same `ghcr.io/ahmedszamzam/datagen:latest` image. If you skip this step, deployed containers will use stale code.
 
+### Data generator defaults must match original behavior
+When adding new configurable parameters to the data generator, always set defaults to match the original (pre-change) behavior. Workshop and self-serve don't pass these values — they rely on defaults. Only demo_mode explicitly overrides them in `demo_mode/main.tf`.
+
 ## Important: Terraform Dependency Ordering
 
 The `flink_statements` module **must** use `depends_on = [module.base]` in the entry point (e.g., `demo_mode/main.tf`). Without this, Flink statements fail because the Kafka topics and schemas haven't been registered in the Flink catalog yet. The base module creates topics, schemas, the CDC connector, and the `alter_credit_score_table` statement — all of which must complete before any Flink DDL statement can reference these tables.
+
+Within the flink-statements module, all 8 statements are chained via `depends_on` to enforce sequential execution and preserve dependencies (e.g., `enriched_mortgage_with_payments` depends on both `enriched_mortgage_applications` and `applicant_payment_summary`).
 
 ## Git Conventions
 
