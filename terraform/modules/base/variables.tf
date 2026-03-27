@@ -83,5 +83,11 @@ variable "mortgage_app_count" {
 variable "mortgage_app_startup_delay" {
   description = "Delay in seconds before starting mortgage application generation"
   type        = number
-  default     = 600
+  default     = 0
+}
+
+variable "new_applicant_interval" {
+  description = "Interval in seconds between inserting new applicants into Postgres (0 to disable)"
+  type        = number
+  default     = 0
 }

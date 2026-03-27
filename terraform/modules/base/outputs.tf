@@ -106,5 +106,6 @@ PG_PASSWORD=${var.db_password}
 MORTGAGE_APP_INTERVAL_SECONDS=${var.mortgage_app_interval}
 MORTGAGE_APP_COUNT=${var.mortgage_app_count}
 MORTGAGE_APP_STARTUP_DELAY_SECONDS=${var.mortgage_app_startup_delay}
+NEW_APPLICANT_INTERVAL_SECONDS=${var.new_applicant_interval}
   EOT
 }

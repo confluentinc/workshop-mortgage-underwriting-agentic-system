@@ -30,10 +30,10 @@ module "base" {
   bedrock_access_key         = var.bedrock_access_key_id
   bedrock_secret_key         = var.bedrock_secret_access_key
 
-  # Demo mode: 1 app per minute, continuous, 10-minute startup delay
-  mortgage_app_interval      = 60
-  mortgage_app_count         = -1
-  mortgage_app_startup_delay = 600
+  # Demo mode: 1 app every 30s, continuous, new DB applicant every 60s
+  mortgage_app_interval        = 30
+  mortgage_app_count           = -1
+  new_applicant_interval       = 60
 }
 
 module "flink_statements" {
@@ -49,4 +49,6 @@ module "flink_statements" {
   flink_api_key_secret       = module.base.flink_api_key_secret
   service_account_id         = module.base.service_account_id
   email_address              = var.email_address
+
+  depends_on = [module.base]
 }
