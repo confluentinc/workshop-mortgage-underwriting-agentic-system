@@ -8,6 +8,10 @@ output "postgres_cdc_connector" {
   sensitive = true
 }
 
+output "flink_exec_command" {
+  value = module.base.flink_exec_command
+}
+
 output "webapp_endpoint" {
   value = module.base.webapp_endpoint
 }

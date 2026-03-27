@@ -302,13 +302,12 @@ resource "confluent_flink_statement" "mortgage_risk_agent" {
     - agent_reasoning: 1–3 sentences summarizing key factors
 
     # OUTPUT FORMAT
-    Respond ONLY with JSON. Example:
-    {
-      "fraud_risk_score": 12.0,
-      "loan_stack_risk": "Low",
-      "risk_category": "Moderate",
-      "agent_reasoning": "Credit score is mid-range with elevated utilization, but payment history is stable. No strong fraud indicators detected."
-    }'
+    Respond ONLY with a raw JSON object. Do NOT wrap it in markdown code blocks (no ```json or ```). Do NOT include any text, explanation, or commentary before or after the JSON object.
+
+    Example of a valid response:
+    {"fraud_risk_score": 12.0, "loan_stack_risk": "Low", "risk_category": "Moderate", "agent_reasoning": "Credit score is mid-range with elevated utilization, but payment history is stable. No strong fraud indicators detected."}
+
+    IMPORTANT: Your entire response must be parseable as a single JSON object. Any additional text will cause a system failure.'
     COMMENT 'Credit + fraud risk assessment agent'
     WITH (
       'max_consecutive_failures' = '2',
@@ -388,8 +387,8 @@ resource "confluent_flink_statement" "mortgage_validated_apps" {
           'Credit Utilization: ', CAST(m.credit_utilization AS STRING), '%\n',
           'Debt-to-Income: ', CAST(m.debt_to_income_ratio AS STRING), '%\n',
           'Recent Defaults: ', CAST(m.recent_defaults AS STRING), '\n',
-          'Payment History: ', COALESCE(CAST(m.payment_history AS STRING), ''), '\n\n',
-          'Return JSON only using the required output format.'
+          'Payment History: ', COALESCE(CAST(m.payment_history AS STRING), 'No payment history available'), '\n\n',
+          'Return ONLY a raw JSON object with these exact fields: fraud_risk_score (number), loan_stack_risk (string), risk_category (string), agent_reasoning (string). Do NOT wrap in markdown code blocks. Do NOT include any text before or after the JSON.'
         ),
         MAP['debug', true]
       )
@@ -587,10 +586,10 @@ resource "confluent_flink_statement" "mortgage_decisions" {
           'Credit Score: ', CAST(m.credit_score AS STRING), '\n',
           'Credit Utilization: ', CAST(m.credit_utilization AS STRING), '%\n',
           'Debt-to-Income: ', CAST(m.debt_to_income_ratio AS STRING), '%\n',
-          'Fraud Risk Score: ', CAST(m.fraud_risk_score AS STRING), '\n',
-          'Loan Stack Risk: ', m.loan_stack_risk, '\n',
-          'Risk Category: ', m.risk_category, '\n',
-          'Risk Assessment: ', m.agent_reasoning, '\n\n',
+          'Fraud Risk Score: ', COALESCE(CAST(m.fraud_risk_score AS STRING), 'N/A'), '\n',
+          'Loan Stack Risk: ', COALESCE(m.loan_stack_risk, 'N/A'), '\n',
+          'Risk Category: ', COALESCE(m.risk_category, 'N/A'), '\n',
+          'Risk Assessment: ', COALESCE(m.agent_reasoning, 'N/A'), '\n\n',
           'You are an API that responds with JSON only. Do not include explanations, headers, or markdown formatting.\n\n',
           'Respond ONLY with a raw JSON object like this:\n',
           '{\n'

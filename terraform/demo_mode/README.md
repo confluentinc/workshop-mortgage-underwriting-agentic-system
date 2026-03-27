@@ -11,9 +11,12 @@ Before starting, make sure you have:
 | Requirement | Check |
 |-------------|-------|
 | **Confluent Cloud account** with [API Keys](https://docs.confluent.io/cloud/current/security/authenticate/workload-identities/service-accounts/api-keys/overview.html#resource-scopes) (`Cloud resource management` permissions) | [Sign up here](https://cnfl.io/dswt2026) |
+| **AWS account** with permissions to create EC2 instances and IAM users | [Sign up here](https://aws.amazon.com/) |
+| **AWS CLI** configured with credentials | `aws configure` |
 | **Terraform** v1.5.7+ | `brew install terraform` or [download](https://www.terraform.io/downloads.html) |
 | **Git CLI** | `brew install git` |
 | **Container runtime** (Docker Desktop, Colima, or Podman) | Install one runtime |
+| **Zapier MCP token** | [Setup guide](../../assets/Zapier-Setup.md) |
 
 
 <details>
@@ -73,14 +76,8 @@ Before starting, make sure you have:
    |----------|----------------|
    | `confluent_cloud_api_key` | Your Confluent Cloud API key |
    | `confluent_cloud_api_secret` | Your Confluent Cloud API secret |
-   | `mcp_url` | Provided by your instructor |
-   | `mcp_token` | Provided by your instructor |
-   | `bedrock_access_key_id` | Provided by your instructor |
-   | `bedrock_secret_access_key` | Provided by your instructor |
-   | `db_host` | Provided by your instructor |
-   | `db_name` | Provided by your instructor (e.g. `app1`, `app27`) |
-   | `db_password` | Provided by your instructor |
-   | `email_address` | Your email address (for mortgage decision notifications) |
+   | `email` | Your email address (for AWS resource tagging and mortgage decision notifications) |
+   | `zapier_token` | Your Zapier MCP token for Streamable HTTP connection |
 
 > [!CAUTION]
 > **Your container runtime must be running before deploying Terraform.**
@@ -108,13 +105,14 @@ Before starting, make sure you have:
 
 Terraform automatically deploys the entire pipeline — from infrastructure to AI agents — with a single `terraform apply`:
 
-1. **Base infrastructure**: Confluent Cloud environment, Kafka cluster, Schema Registry, Flink compute pool, service accounts, API keys, topics, schemas with data quality rules.
-2. **Postgres CDC Source Connector**: Streams credit score data from Postgres to Confluent Cloud.
-3. **LLM model**: Claude on Amazon Bedrock, registered as a Flink SQL model.
-4. **MCP connection**: For external tool access (email sending).
-5. **Data generator container** (`mortgage-datagen`): Seeds historical data, then produces **1 mortgage application per minute** continuously (starting after a 10-minute delay).
-6. **Webapp container**: Local webapp at http://localhost:5001 for submitting applications.
-7. **The entire Flink pipeline** — All Flink DDL statements are deployed sequentially to preserve dependencies:
+1. **AWS infrastructure**: EC2 Postgres instance (seeded with credit score data) and IAM user for Amazon Bedrock access.
+2. **Base infrastructure**: Confluent Cloud environment, Kafka cluster, Schema Registry, Flink compute pool, service accounts, API keys, topics, schemas with data quality rules.
+3. **Postgres CDC Source Connector**: Streams credit score data from Postgres to Confluent Cloud.
+4. **LLM model**: Claude on Amazon Bedrock, registered as a Flink SQL model.
+5. **MCP connection**: For external tool access (email sending).
+6. **Data generator container** (`mortgage-datagen`): Seeds historical data, then produces **1 mortgage application per minute** continuously (starting after a 10-minute delay).
+7. **Webapp container**: Local webapp at http://localhost:5001 for submitting applications.
+8. **The entire Flink pipeline** — All Flink DDL statements are deployed sequentially to preserve dependencies:
    - `enriched_mortgage_applications` — Joins mortgage apps with CDC credit score data
    - `applicant_payment_summary` — Aggregates payment history per applicant
    - `enriched_mortgage_with_payments` — Temporal join combining enriched apps with payments

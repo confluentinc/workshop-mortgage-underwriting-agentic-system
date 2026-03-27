@@ -591,7 +591,7 @@ resource "confluent_schema" "avro-mortgage_applications" {
       params = {
         "dlq.topic" = confluent_kafka_topic.incomplete-mortgage-applications-topic.topic_name
         "dlq.auto.flush" = "true"
-        }
+      }
     }
   }
   depends_on = [
