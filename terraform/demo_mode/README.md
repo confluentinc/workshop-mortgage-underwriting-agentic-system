@@ -110,7 +110,7 @@ Terraform automatically deploys the entire pipeline — from infrastructure to A
 3. **Postgres CDC Source Connector**: Streams credit score data from Postgres to Confluent Cloud.
 4. **LLM model**: Claude on Amazon Bedrock, registered as a Flink SQL model.
 5. **MCP connection**: For external tool access (email sending).
-6. **Data generator container** (`mortgage-datagen`): Seeds historical data, then produces **1 mortgage application per minute** continuously (starting after a 10-minute delay).
+6. **Data generator container** (`mortgage-datagen`): Seeds historical data, then produces **1 mortgage application per minute** continuously (starting after a 5-minute delay).
 7. **Webapp container**: Local webapp at http://localhost:5001 for submitting applications.
 8. **The entire Flink pipeline** — All Flink DDL statements are deployed sequentially to preserve dependencies:
    - `enriched_mortgage_applications` — Joins mortgage apps with CDC credit score data

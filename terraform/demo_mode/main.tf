@@ -57,7 +57,7 @@ module "base" {
   bedrock_access_key         = module.aws.bedrock_access_key_id
   bedrock_secret_key         = module.aws.bedrock_secret_access_key
 
-  # Demo mode: 1 app every 30s, continuous, 5min startup delay, new DB applicant every 60s
+  # Demo mode: 1 app every 60s, continuous, 5min startup delay, new DB applicant every 60s
   mortgage_app_interval        = 60
   mortgage_app_count           = -1
   mortgage_app_startup_delay   = 300
