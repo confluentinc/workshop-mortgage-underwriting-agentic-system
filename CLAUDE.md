@@ -265,6 +265,24 @@ Demo:
 
 Within the flink-statements module, all 8 statements are chained via `depends_on` to enforce sequential execution.
 
+## Important: Debugging ECS + CDC Connector Failures
+
+If the CDC connector fails with "capture list is empty", **always check the ECS task status and logs first** before adding sleep/retry workarounds. The datagen container may be crashing (wrong architecture, missing env vars, Postgres unreachable) rather than simply being slow to seed.
+
+```bash
+# Check ECS task status
+aws ecs list-tasks --cluster <cluster-name> --region us-east-1
+aws ecs describe-tasks --cluster <cluster-name> --tasks <task-id> --region us-east-1
+
+# Check container logs
+aws logs tail /ecs/<log-group> --follow
+```
+
+Common failures:
+- `exec format error` — wrong architecture (ARM64 image on x86_64 or vice versa). Fix: rebuild multi-arch image.
+- `Connection refused` — Postgres EC2 not ready yet. ECS service auto-restarts, so this self-heals.
+- Exit code 255 — check logs for the actual error before assuming it's a timing issue.
+
 ## Important: Confluent Cloud Flink Property Names
 
 Confluent Cloud Flink uses **hyphenated** property names, not dot-separated. For example:
