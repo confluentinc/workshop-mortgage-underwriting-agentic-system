@@ -88,24 +88,30 @@ output "postgres_cdc_connector" {
   sensitive = true
 }
 
-# Create data generator environment file
-resource "local_file" "datagen_env" {
-  filename = "${path.root}/../data-gen/.datagen.env"
-  content  = <<-EOT
-KAFKA_BOOTSTRAP_SERVERS=${confluent_kafka_cluster.standard.bootstrap_endpoint}
-KAFKA_API_KEY=${confluent_api_key.app-manager-kafka-api-key.id}
-KAFKA_API_SECRET=${confluent_api_key.app-manager-kafka-api-key.secret}
-SCHEMA_REGISTRY_URL=${data.confluent_schema_registry_cluster.sr-cluster.rest_endpoint}
-SCHEMA_REGISTRY_API_KEY=${confluent_api_key.app-manager-schema-registry-api-key.id}
-SCHEMA_REGISTRY_API_SECRET=${confluent_api_key.app-manager-schema-registry-api-key.secret}
-PG_HOST=${var.db_host}
-PG_PORT=${var.db_port}
-PG_DATABASE=${var.db_name}
-PG_USERNAME=${var.db_username}
-PG_PASSWORD=${var.db_password}
-MORTGAGE_APP_INTERVAL_SECONDS=${var.mortgage_app_interval}
-MORTGAGE_APP_COUNT=${var.mortgage_app_count}
-MORTGAGE_APP_STARTUP_DELAY_SECONDS=${var.mortgage_app_startup_delay}
-CDC_HEARTBEAT_INTERVAL_SECONDS=${var.cdc_heartbeat_interval}
-  EOT
+output "kafka_bootstrap_servers" {
+  value = confluent_kafka_cluster.standard.bootstrap_endpoint
+}
+
+output "kafka_api_key" {
+  value     = confluent_api_key.app-manager-kafka-api-key.id
+  sensitive = true
+}
+
+output "kafka_api_secret" {
+  value     = confluent_api_key.app-manager-kafka-api-key.secret
+  sensitive = true
+}
+
+output "schema_registry_url" {
+  value = data.confluent_schema_registry_cluster.sr-cluster.rest_endpoint
+}
+
+output "schema_registry_api_key" {
+  value     = confluent_api_key.app-manager-schema-registry-api-key.id
+  sensitive = true
+}
+
+output "schema_registry_api_secret" {
+  value     = confluent_api_key.app-manager-schema-registry-api-key.secret
+  sensitive = true
 }

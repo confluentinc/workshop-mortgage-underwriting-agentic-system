@@ -58,6 +58,29 @@ module "base" {
   bedrock_secret_key         = module.aws.bedrock_secret_access_key
 }
 
+module "ecs_datagen" {
+  source         = "../modules/ecs-datagen"
+  prefix         = var.prefix
+  env_display_id = random_id.env_display_id.hex
+
+  subnet_ids        = module.aws.subnet_ids
+  security_group_id = module.aws.security_group_id
+
+  kafka_bootstrap_servers    = module.base.kafka_bootstrap_servers
+  kafka_api_key              = module.base.kafka_api_key
+  kafka_api_secret           = module.base.kafka_api_secret
+  schema_registry_url        = module.base.schema_registry_url
+  schema_registry_api_key    = module.base.schema_registry_api_key
+  schema_registry_api_secret = module.base.schema_registry_api_secret
+  pg_host                    = module.aws.db_host
+  pg_port                    = module.aws.db_port
+  pg_database                = module.aws.db_name
+  pg_username                = module.aws.db_username
+  pg_password                = module.aws.db_password
+
+  depends_on = [module.base, module.aws]
+}
+
 output "resource_ids" {
   value     = module.base.resource_ids
   sensitive = true

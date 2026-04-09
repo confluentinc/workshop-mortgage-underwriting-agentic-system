@@ -307,8 +307,6 @@ resource "confluent_connector" "postgres_cdc_source" {
     confluent_kafka_acl.app-manager-read-on-group,
     confluent_kafka_acl.app-manager-describe-on-cluster,
     confluent_kafka_topic.cdc-credit-score-topic,
-    null_resource.datagen_container_unix,
-    null_resource.datagen_container_windows,
   ]
 }
 

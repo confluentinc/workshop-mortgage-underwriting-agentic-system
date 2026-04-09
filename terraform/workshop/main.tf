@@ -31,6 +31,24 @@ module "base" {
   bedrock_secret_key         = var.bedrock_secret_access_key
 }
 
+module "local_datagen" {
+  source = "../modules/local-datagen"
+
+  kafka_bootstrap_servers    = module.base.kafka_bootstrap_servers
+  kafka_api_key              = module.base.kafka_api_key
+  kafka_api_secret           = module.base.kafka_api_secret
+  schema_registry_url        = module.base.schema_registry_url
+  schema_registry_api_key    = module.base.schema_registry_api_key
+  schema_registry_api_secret = module.base.schema_registry_api_secret
+  pg_host                    = var.db_host
+  pg_port                    = var.db_port
+  pg_database                = var.db_name
+  pg_username                = var.db_username
+  pg_password                = var.db_password
+
+  depends_on = [module.base]
+}
+
 output "resource_ids" {
   value     = module.base.resource_ids
   sensitive = true
