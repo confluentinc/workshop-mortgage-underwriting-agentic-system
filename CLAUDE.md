@@ -166,10 +166,11 @@ cd terraform/demo_mode && terraform init && terraform apply --auto-approve
 # Destroy (from the same directory you deployed from)
 terraform destroy --auto-approve
 
-# Rebuild and push data generator image
+# Rebuild and push data generator image (always multi-arch)
 cd terraform/data-gen/datagen-app
-docker build -t ghcr.io/ahmedszamzam/datagen:latest .
-docker push ghcr.io/ahmedszamzam/datagen:latest
+docker buildx create --name multiarch --use 2>/dev/null || docker buildx use multiarch
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -t ghcr.io/ahmedszamzam/datagen:latest --push .
 
 # Check datagen container logs
 docker logs mortgage-datagen
@@ -180,12 +181,13 @@ docker logs mortgage-datagen
 ### Do not modify `modules/base/` unless specifically asked
 Changes to `terraform/modules/base/` affect **all three deployment modes** (workshop, self-serve, demo). Only modify base when the change is intentionally shared across all modes. Mode-specific logic belongs in the entry point (`terraform/workshop/`, `terraform/self-serve/`, `terraform/demo_mode/`) or in a dedicated module like `modules/flink-statements/`.
 
-### Always rebuild and push the Docker image after data generator changes
-If any file under `terraform/data-gen/` changes (Java code, Dockerfile, pom.xml), you **must** rebuild and push the Docker image before testing:
+### Always rebuild and push a multi-arch Docker image after data generator changes
+If any file under `terraform/data-gen/` changes (Java code, Dockerfile, pom.xml), you **must** rebuild and push a **multi-architecture** Docker image before testing. Always use `buildx` with both `linux/amd64` and `linux/arm64` platforms — a single-arch image built on Mac (ARM64) will fail on ECS Fargate (x86_64) and vice versa.
 ```bash
 cd terraform/data-gen/datagen-app
-docker build -t ghcr.io/ahmedszamzam/datagen:latest .
-docker push ghcr.io/ahmedszamzam/datagen:latest
+docker buildx create --name multiarch --use 2>/dev/null || docker buildx use multiarch
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -t ghcr.io/ahmedszamzam/datagen:latest --push .
 ```
 All three modes pull the same `ghcr.io/ahmedszamzam/datagen:latest` image. If you skip this step, deployed containers will use stale code.
 
