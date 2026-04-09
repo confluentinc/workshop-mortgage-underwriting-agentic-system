@@ -400,12 +400,12 @@ public class DataGenerator {
         };
         record.put("property_state", state);
 
-        // payslips: first 3 are always "N/A" (for demo), then 5/6 valid, 1/6 "N/A" (triggers DLQ)
+        // payslips: first 3 are always "N/A" (for demo), then 9/10 valid, 1/10 "N/A" (triggers DLQ)
         String payslips;
         if (eventIndex < 3) {
             payslips = "N/A";
         } else {
-            payslips = weightedChoice(Map.of(0, 5, 1, 1)) == 0
+            payslips = weightedChoice(Map.of(0, 9, 1, 1)) == 0
                 ? "s3://riverbank-payslip-bucket/" + applicantId
                 : "N/A";
         }

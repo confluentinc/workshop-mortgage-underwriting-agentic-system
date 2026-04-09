@@ -82,7 +82,7 @@ module "ecs_datagen" {
   # Demo mode: 1 app every 60s, continuous, 5min startup delay
   mortgage_app_interval      = 60
   mortgage_app_count         = -1
-  mortgage_app_startup_delay = 300
+  mortgage_app_startup_delay = 0
   cdc_heartbeat_interval     = 10
 
   depends_on = [module.base, module.aws]
