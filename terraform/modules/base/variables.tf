@@ -86,8 +86,8 @@ variable "mortgage_app_startup_delay" {
   default     = 0
 }
 
-variable "new_applicant_interval" {
-  description = "Interval in seconds between inserting new applicants into Postgres (0 to disable)"
+variable "cdc_heartbeat_interval" {
+  description = "Interval in seconds for CDC heartbeat updates to Postgres (0 to disable). Heartbeat advances CDC topic watermark without inserting new rows."
   type        = number
-  default     = 0
+  default     = 10
 }

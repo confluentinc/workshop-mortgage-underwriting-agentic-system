@@ -21,12 +21,13 @@ locals {
   flink_properties = {
     "sql.current-catalog"  = var.environment_display_name
     "sql.current-database" = var.kafka_cluster_display_name
+    "sql.state.ttl"        = "7d"
   }
 }
 
 # ------------------------------------------------------
 # Statement 1: Enriched Mortgage Applications (CTAS)
-# Joins mortgage_applications with CDC credit score data
+# Temporal join with CDC credit score versioned table
 # ------------------------------------------------------
 
 resource "confluent_flink_statement" "enriched_mortgage_applications" {
@@ -84,15 +85,15 @@ resource "confluent_flink_statement" "enriched_mortgage_applications" {
       m.property_state,
       CAST(m.property_value AS DOUBLE) AS property_value,
       m.employment_status,
-      c.after.credit_score AS credit_score,
-      c.after.credit_utilization AS credit_utilization,
-      c.after.open_credit_accounts AS open_credit_accounts,
-      c.after.public_records AS recent_defaults,
+      c.credit_score AS credit_score,
+      c.credit_utilization AS credit_utilization,
+      c.open_credit_accounts AS open_credit_accounts,
+      c.public_records AS recent_defaults,
       CAST(ROUND((CAST(m.loan_amount AS DECIMAL(10, 2)) / CAST(m.income AS DECIMAL(10, 2))) * 100, 2) AS DOUBLE) AS debt_to_income_ratio,
       m.application_ts
     FROM `${var.environment_display_name}`.`${var.kafka_cluster_display_name}`.`mortgage_applications` m
-    JOIN `${var.environment_display_name}`.`${var.kafka_cluster_display_name}`.`PROD.public.applicant_credit_score` c
-    ON m.applicant_id = c.after.applicant_id;
+    JOIN `${var.environment_display_name}`.`${var.kafka_cluster_display_name}`.`PROD.public.applicant_credit_score` FOR SYSTEM_TIME AS OF m.`application_ts` AS c
+    ON m.applicant_id = c.applicant_id;
   SQL
 
   properties = local.flink_properties

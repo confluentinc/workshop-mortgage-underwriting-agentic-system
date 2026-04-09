@@ -57,11 +57,11 @@ module "base" {
   bedrock_access_key         = module.aws.bedrock_access_key_id
   bedrock_secret_key         = module.aws.bedrock_secret_access_key
 
-  # Demo mode: 1 app every 60s, continuous, 5min startup delay, new DB applicant every 60s
+  # Demo mode: 1 app every 60s, continuous, 5min startup delay, CDC heartbeat enabled
   mortgage_app_interval        = 60
   mortgage_app_count           = -1
   mortgage_app_startup_delay   = 300
-  new_applicant_interval       = 60
+  cdc_heartbeat_interval       = 10
 }
 
 module "flink_statements" {

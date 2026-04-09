@@ -57,7 +57,7 @@ public class DataGenerator {
     private static final int MORTGAGE_APP_INTERVAL_SECONDS = envOrDefault("MORTGAGE_APP_INTERVAL_SECONDS", 600);
     private static final int MORTGAGE_APP_COUNT = envOrDefault("MORTGAGE_APP_COUNT", 20);
     private static final int MORTGAGE_APP_STARTUP_DELAY_SECONDS = envOrDefault("MORTGAGE_APP_STARTUP_DELAY_SECONDS", 0);
-    private static final int NEW_APPLICANT_INTERVAL_SECONDS = envOrDefault("NEW_APPLICANT_INTERVAL_SECONDS", 0);
+    private static final int CDC_HEARTBEAT_INTERVAL_SECONDS = envOrDefault("CDC_HEARTBEAT_INTERVAL_SECONDS", 10);
 
     // Topics
     private static final String TOPIC_MORTGAGE_APPLICATIONS = "mortgage_applications";
@@ -97,7 +97,8 @@ public class DataGenerator {
                         credit_utilization DECIMAL(5,1),
                         open_credit_accounts INT,
                         total_credit_limit INT,
-                        public_records INT
+                        public_records INT,
+                        last_heartbeat TIMESTAMP
                     )
                     """);
             }
@@ -294,78 +295,44 @@ public class DataGenerator {
             }
         }, "payment-thread");
 
-        // Thread 3: New applicant insertion into Postgres (optional, disabled by default)
-        Thread applicantThread = null;
-        if (NEW_APPLICANT_INTERVAL_SECONDS > 0) {
-            applicantThread = new Thread(() -> {
+        // Thread 3: CDC heartbeat — periodic UPDATE to advance CDC topic watermark
+        Thread heartbeatThread = null;
+        if (CDC_HEARTBEAT_INTERVAL_SECONDS > 0) {
+            heartbeatThread = new Thread(() -> {
                 try (Connection conn = getPostgresConnection()) {
-                    String insertSql = """
-                        INSERT INTO applicant_credit_score
-                            (applicant_id, applicant_name, credit_score, credit_utilization,
-                             open_credit_accounts, total_credit_limit, public_records)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                        ON CONFLICT (applicant_id) DO NOTHING
-                        """;
+                    String updateSql = "UPDATE applicant_credit_score SET last_heartbeat = NOW() WHERE applicant_id = 'C-100000'";
                     int count = 0;
                     while (!Thread.currentThread().isInterrupted()) {
-                        // Weighted credit tier: 1/10 high, 7/10 medium, 2/10 low
-                        int tier = weightedChoice(Map.of(0, 1, 1, 7, 2, 2));
-                        int scoreMin, scoreMax;
-                        int publicRecords;
-                        switch (tier) {
-                            case 0 -> { scoreMin = 750; scoreMax = 850; publicRecords = 0; }
-                            case 1 -> { scoreMin = 501; scoreMax = 750; publicRecords = weightedChoice(Map.of(0, 9, 1, 1)); }
-                            default -> { scoreMin = 300; scoreMax = 500; publicRecords = weightedChoice(Map.of(0, 1, 1, 1, 2, 2, 3, 3, 4, 3)); }
+                        try (Statement stmt = conn.createStatement()) {
+                            stmt.executeUpdate(updateSql);
                         }
-
-                        String applicantId = UUID.randomUUID().toString();
-                        String name = faker.name().fullName();
-                        try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
-                            addCreditScoreBatch(ps, applicantId, name,
-                                randomInt(scoreMin, scoreMax),
-                                randomDecimal(0, 100, 1),
-                                randomInt(0, 5),
-                                randomInt(1000, 50000),
-                                publicRecords);
-                            ps.executeBatch();
-                        }
-
-                        // Add to in-memory cache
-                        Map<String, Object> newApplicant = Map.of(
-                            "applicant_id", applicantId,
-                            "applicant_name", name
-                        );
-                        allApplicants.add(newApplicant);
-                        int score = randomInt(scoreMin, scoreMax);
-                        if (score >= 750) highCreditApplicants.add(newApplicant);
-                        else if (score >= 501) mediumCreditApplicants.add(newApplicant);
-                        else lowCreditApplicants.add(newApplicant);
-
                         count++;
-                        log.info("  New applicant {} inserted (id={}, name={})", count, applicantId, name);
-
-                        Thread.sleep(NEW_APPLICANT_INTERVAL_SECONDS * 1000L);
+                        if (count % 100 == 0) {
+                            log.info("  CDC heartbeat: {} updates sent", count);
+                        }
+                        // Random sleep between 5-10 seconds
+                        Thread.sleep((long) (Math.random() * 5000 + 5000));
                     }
                 } catch (InterruptedException e) {
-                    log.info("Applicant thread interrupted, shutting down");
+                    log.info("Heartbeat thread interrupted, shutting down");
                 } catch (Exception e) {
-                    log.error("Applicant thread failed", e);
+                    log.error("Heartbeat thread failed", e);
                 }
-            }, "applicant-thread");
+            }, "heartbeat-thread");
         }
 
         mortgageThread.start();
         paymentThread.start();
-        if (applicantThread != null) {
-            applicantThread.start();
-            log.info("New applicant thread started (interval={}s)", NEW_APPLICANT_INTERVAL_SECONDS);
+        if (heartbeatThread != null) {
+            heartbeatThread.start();
+            log.info("CDC heartbeat thread started (interval=random 5-10s)");
         }
 
         // Wait for threads (payment thread runs indefinitely)
         mortgageThread.join();
         log.info("Mortgage thread finished. Payment thread continues running. Press Ctrl+C to stop.");
         paymentThread.join();
-        if (applicantThread != null) applicantThread.join();
+        if (heartbeatThread != null) heartbeatThread.join();
     }
 
     // ========================================================================

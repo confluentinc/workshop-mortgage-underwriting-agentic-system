@@ -310,8 +310,8 @@ resource "confluent_connector" "postgres_cdc_source" {
   ]
 }
 
-# Set changelog mode on the CDC topic for joining with mortgage_applications
-resource "confluent_flink_statement" "alter_credit_score_table" {
+# Add watermark on mortgage_applications for temporal join support
+resource "confluent_flink_statement" "alter_mortgage_applications" {
   organization {
     id = data.confluent_organization.confluent_org.id
   }
@@ -330,10 +330,10 @@ resource "confluent_flink_statement" "alter_credit_score_table" {
     secret = confluent_api_key.app-manager-flink-api-key.secret
   }
 
-  statement_name = "alter-credit-score-changelog-mode"
+  statement_name = "alter-mortgage-applications-watermark"
 
   statement = <<-EOT
-    ALTER TABLE `${confluent_environment.staging.display_name}`.`${confluent_kafka_cluster.standard.display_name}`.`PROD.public.applicant_credit_score` SET ('changelog.mode' = 'append', 'value.format' = 'avro-registry');
+    ALTER TABLE `${confluent_environment.staging.display_name}`.`${confluent_kafka_cluster.standard.display_name}`.`mortgage_applications` MODIFY WATERMARK FOR `application_ts` AS `application_ts` - INTERVAL '5' SECOND;
   EOT
 
   properties = {
