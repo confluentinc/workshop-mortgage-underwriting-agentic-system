@@ -81,7 +81,9 @@ This Flink Streaming Agent evaluates each enriched application plus payment hist
 
    ```sql
    SET 'client.statement-name' = 'mortgage-risk-agent';
-   CREATE TABLE mortgage_validated_apps AS
+   CREATE TABLE mortgage_validated_apps
+   DISTRIBUTED INTO 1 BUCKETS
+   AS
    SELECT
       m.application_id,
       m.applicant_id,
@@ -180,7 +182,9 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
 
    ```sql
    SET 'client.statement-name' = 'mortgage-decisions-agent';
-   CREATE TABLE mortgage_decisions AS 
+   CREATE TABLE mortgage_decisions
+   DISTRIBUTED INTO 1 BUCKETS
+   AS 
    SELECT 
       m.application_id,
       m.applicant_id,
