@@ -130,7 +130,7 @@ Install Java 17 and Maven if not already installed:
      application_ts TIMESTAMP_LTZ(3),
      WATERMARK FOR application_ts AS application_ts - INTERVAL '5' SECOND
    )
-   WITH ('kafka.partitions' = '1')
+   DISTRIBUTED INTO 1 BUCKETS
    AS
    SELECT
      m.application_id,
@@ -198,7 +198,7 @@ Then, we will perform a **temporal join** between `enriched_mortgage_application
    )>,
    WATERMARK FOR `updated_at` AS `updated_at` - INTERVAL '5' SECOND
    )
-   WITH ('kafka.partitions' = '1')
+   DISTRIBUTED INTO 1 BUCKETS
    AS
    SELECT 
    applicant_id,
@@ -233,7 +233,8 @@ Then, we will perform a **temporal join** between `enriched_mortgage_application
    ```sql
    SET 'client.statement-name' = 'enriched-mortgage-payments-materializer';
    CREATE TABLE `enriched_mortgage_with_payments`
-   WITH ('changelog.mode' = 'append', 'kafka.partitions' = '1')
+   DISTRIBUTED INTO 1 BUCKETS
+   WITH ('changelog.mode' = 'append')
       AS
       SELECT
       m.application_id,

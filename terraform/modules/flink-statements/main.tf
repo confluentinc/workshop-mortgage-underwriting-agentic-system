@@ -71,7 +71,7 @@ resource "confluent_flink_statement" "enriched_mortgage_applications" {
       application_ts TIMESTAMP_LTZ(3),
       WATERMARK FOR application_ts AS application_ts - INTERVAL '5' SECOND
     )
-    WITH ('kafka.partitions' = '1')
+    DISTRIBUTED INTO 1 BUCKETS
     AS
     SELECT
       m.application_id,
@@ -141,7 +141,7 @@ resource "confluent_flink_statement" "applicant_payment_summary" {
       )>,
       WATERMARK FOR `updated_at` AS `updated_at` - INTERVAL '5' SECOND
     )
-    WITH ('kafka.partitions' = '1')
+    DISTRIBUTED INTO 1 BUCKETS
     AS
     SELECT
       applicant_id,
@@ -197,7 +197,8 @@ resource "confluent_flink_statement" "enriched_mortgage_with_payments" {
 
   statement = <<-SQL
     CREATE TABLE `${var.environment_display_name}`.`${var.kafka_cluster_display_name}`.`enriched_mortgage_with_payments`
-    WITH ('changelog.mode' = 'append', 'kafka.partitions' = '1')
+    DISTRIBUTED INTO 1 BUCKETS
+    WITH ('changelog.mode' = 'append')
     AS
     SELECT
       m.application_id,
@@ -352,7 +353,7 @@ resource "confluent_flink_statement" "mortgage_validated_apps" {
 
   statement = <<-SQL
     CREATE TABLE `${var.environment_display_name}`.`${var.kafka_cluster_display_name}`.`mortgage_validated_apps`
-    WITH ('kafka.partitions' = '1')
+    DISTRIBUTED INTO 1 BUCKETS
     AS
     SELECT
       m.application_id,
@@ -528,7 +529,7 @@ resource "confluent_flink_statement" "mortgage_decisions" {
 
   statement = <<-SQL
     CREATE TABLE `${var.environment_display_name}`.`${var.kafka_cluster_display_name}`.`mortgage_decisions`
-    WITH ('kafka.partitions' = '1')
+    DISTRIBUTED INTO 1 BUCKETS
     AS
     SELECT
       m.application_id,
