@@ -408,7 +408,7 @@ resource "confluent_flink_statement" "alter_credit_score_watermark" {
   statement_name = "alter-credit-score-watermark"
 
   statement = <<-EOT
-    ALTER TABLE `${confluent_environment.staging.display_name}`.`${confluent_kafka_cluster.standard.display_name}`.`PROD.public.applicant_credit_score` MODIFY WATERMARK FOR `updated_at` AS `updated_at` - INTERVAL '15' SECOND;
+    ALTER TABLE `${confluent_environment.staging.display_name}`.`${confluent_kafka_cluster.standard.display_name}`.`PROD.public.applicant_credit_score` MODIFY WATERMARK FOR `updated_at` AS `updated_at` - INTERVAL '5' SECOND;
   EOT
 
   properties = {
