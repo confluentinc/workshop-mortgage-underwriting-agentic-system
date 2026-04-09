@@ -30,7 +30,6 @@ public class DataGenerator {
     private static final Random random = new Random();
 
     // Sequential ID counters
-    private static final AtomicInteger appIdCounter = new AtomicInteger(200000);
     private static final AtomicInteger txIdCounter = new AtomicInteger(3000000);
 
     // In-memory applicant cache (preloaded from Postgres to avoid per-event DB queries)
@@ -349,8 +348,8 @@ public class DataGenerator {
 
         GenericRecord record = new GenericData.Record(schema);
 
-        // application_id: sequential APP-200000, APP-200001, ...
-        record.put("application_id", "APP-" + appIdCounter.getAndIncrement());
+        // application_id: unique UUID to avoid collisions on container restart
+        record.put("application_id", "APP-" + UUID.randomUUID().toString());
 
         // customer_email: Faker email
         record.put("customer_email", faker.internet().emailAddress());
