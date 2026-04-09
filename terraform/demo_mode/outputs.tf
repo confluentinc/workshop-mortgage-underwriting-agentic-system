@@ -3,11 +3,6 @@ output "resource_ids" {
   sensitive = true
 }
 
-output "postgres_cdc_connector" {
-  value     = module.base.postgres_cdc_connector
-  sensitive = true
-}
-
 output "flink_exec_command" {
   value = module.base.flink_exec_command
 }

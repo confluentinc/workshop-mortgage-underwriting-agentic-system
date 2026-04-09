@@ -88,6 +88,30 @@ module "ecs_datagen" {
   depends_on = [module.base, module.aws]
 }
 
+module "cdc_connector" {
+  source = "../modules/cdc-connector"
+
+  environment_id             = module.base.environment_id
+  kafka_cluster_id           = module.base.kafka_cluster_id
+  kafka_api_key              = module.base.kafka_api_key
+  kafka_api_secret           = module.base.kafka_api_secret
+  organization_id            = module.base.organization_id
+  environment_display_name   = module.base.environment_display_name
+  kafka_cluster_display_name = module.base.kafka_cluster_display_name
+  flink_compute_pool_id      = module.base.flink_compute_pool_id
+  flink_rest_endpoint        = module.base.flink_rest_endpoint
+  flink_api_key_id           = module.base.flink_api_key_id
+  flink_api_key_secret       = module.base.flink_api_key_secret
+  service_account_id         = module.base.service_account_id
+  db_host                    = module.aws.db_host
+  db_port                    = module.aws.db_port
+  db_name                    = module.aws.db_name
+  db_username                = module.aws.db_username
+  db_password                = module.aws.db_password
+
+  depends_on = [module.ecs_datagen]
+}
+
 module "flink_statements" {
   source = "../modules/flink-statements"
 
@@ -102,5 +126,5 @@ module "flink_statements" {
   service_account_id         = module.base.service_account_id
   email_address              = var.email
 
-  depends_on = [module.base]
+  depends_on = [module.cdc_connector]
 }

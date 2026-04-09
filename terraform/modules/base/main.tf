@@ -262,54 +262,6 @@ resource "confluent_kafka_acl" "app-manager-read-on-group" {
   }
 }
 
-# ------------------------------------------------------
-# Connectors
-# ------------------------------------------------------
-
-resource "confluent_connector" "postgres_cdc_source" {
-  environment {
-    id = confluent_environment.staging.id
-  }
-  kafka_cluster {
-    id = confluent_kafka_cluster.standard.id
-  }
-
-  config_sensitive = {
-    "database.password" = var.db_password
-    "kafka.api.secret"  = confluent_api_key.app-manager-kafka-api-key.secret
-  }
-
-  config_nonsensitive = {
-    "connector.class"             = "PostgresCdcSourceV2"
-    "name"                        = "${var.db_name}-postgres-cdc-source"
-    "kafka.auth.mode"             = "KAFKA_API_KEY"
-    "kafka.api.key"               = confluent_api_key.app-manager-kafka-api-key.id
-    "database.hostname"           = var.db_host
-    "database.port"               = tostring(var.db_port)
-    "database.user"               = var.db_username
-    "database.dbname"             = var.db_name
-    "topic.prefix"                = "PROD"
-    "table.include.list"          = "public.applicant_credit_score"
-    "slot.name"                   = "${var.db_name}_debezium"
-    "publication.name"            = "${var.db_name}_dbz_publication"
-    "publication.autocreate.mode" = "filtered"
-    "output.data.format"          = "AVRO"
-    "output.key.format"           = "AVRO"
-    "decimal.handling.mode"       = "double"
-    "time.precision.mode"         = "connect"
-    "tasks.max"                   = "1"
-  }
-
-  depends_on = [
-    confluent_kafka_acl.app-manager-read-on-topic,
-    confluent_kafka_acl.app-manager-write-on-topic,
-    confluent_kafka_acl.app-manager-create-topic,
-    confluent_kafka_acl.app-manager-read-on-group,
-    confluent_kafka_acl.app-manager-describe-on-cluster,
-    confluent_kafka_topic.cdc-credit-score-topic,
-  ]
-}
-
 # Add watermark on mortgage_applications for temporal join support
 resource "confluent_flink_statement" "alter_mortgage_applications" {
   organization {
@@ -344,78 +296,6 @@ resource "confluent_flink_statement" "alter_mortgage_applications" {
   depends_on = [
     confluent_kafka_topic.mortgage-application-topic,
     confluent_schema.avro-mortgage_applications
-  ]
-}
-
-# Set upsert mode on CDC table for temporal join support
-resource "confluent_flink_statement" "alter_credit_score_upsert" {
-  organization {
-    id = data.confluent_organization.confluent_org.id
-  }
-  environment {
-    id = confluent_environment.staging.id
-  }
-  compute_pool {
-    id = confluent_flink_compute_pool.flinkpool-main.id
-  }
-  principal {
-    id = confluent_service_account.app-manager.id
-  }
-  rest_endpoint = data.confluent_flink_region.demo_flink_region.rest_endpoint
-  credentials {
-    key    = confluent_api_key.app-manager-flink-api-key.id
-    secret = confluent_api_key.app-manager-flink-api-key.secret
-  }
-
-  statement_name = "alter-credit-score-primary-key"
-
-  statement = <<-EOT
-    ALTER TABLE `${confluent_environment.staging.display_name}`.`${confluent_kafka_cluster.standard.display_name}`.`PROD.public.applicant_credit_score` SET ('changelog.mode' = 'upsert');
-  EOT
-
-  properties = {
-    "sql.current-catalog"  = confluent_environment.staging.display_name
-    "sql.current-database" = confluent_kafka_cluster.standard.display_name
-  }
-
-  depends_on = [
-    confluent_connector.postgres_cdc_source
-  ]
-}
-
-# Add watermark on CDC table using updated_at for temporal join
-resource "confluent_flink_statement" "alter_credit_score_watermark" {
-  organization {
-    id = data.confluent_organization.confluent_org.id
-  }
-  environment {
-    id = confluent_environment.staging.id
-  }
-  compute_pool {
-    id = confluent_flink_compute_pool.flinkpool-main.id
-  }
-  principal {
-    id = confluent_service_account.app-manager.id
-  }
-  rest_endpoint = data.confluent_flink_region.demo_flink_region.rest_endpoint
-  credentials {
-    key    = confluent_api_key.app-manager-flink-api-key.id
-    secret = confluent_api_key.app-manager-flink-api-key.secret
-  }
-
-  statement_name = "alter-credit-score-watermark"
-
-  statement = <<-EOT
-    ALTER TABLE `${confluent_environment.staging.display_name}`.`${confluent_kafka_cluster.standard.display_name}`.`PROD.public.applicant_credit_score` MODIFY WATERMARK FOR `updated_at` AS `updated_at` - INTERVAL '5' SECOND;
-  EOT
-
-  properties = {
-    "sql.current-catalog"  = confluent_environment.staging.display_name
-    "sql.current-database" = confluent_kafka_cluster.standard.display_name
-  }
-
-  depends_on = [
-    confluent_flink_statement.alter_credit_score_upsert
   ]
 }
 

@@ -45,6 +45,10 @@ output "environment_id" {
   value = confluent_environment.staging.id
 }
 
+output "kafka_cluster_id" {
+  value = confluent_kafka_cluster.standard.id
+}
+
 output "environment_display_name" {
   value = confluent_environment.staging.display_name
 }
@@ -73,19 +77,6 @@ output "flink_api_key_secret" {
 
 output "service_account_id" {
   value = confluent_service_account.app-manager.id
-}
-
-output "postgres_cdc_connector" {
-  value = {
-    database_hostname = var.db_host
-    database_port     = var.db_port
-    database_username = var.db_username
-    database_password = var.db_password
-    database_name     = var.db_name
-    slot_name         = "${var.db_name}_debezium"
-    publication_name  = "${var.db_name}_dbz_publication"
-  }
-  sensitive = true
 }
 
 output "kafka_bootstrap_servers" {
