@@ -7,6 +7,15 @@ terraform {
   }
 }
 
+# Wait for the datagen to seed Postgres before starting the CDC connector.
+# The depends_on in the entry point ensures the ECS task/local container is
+# created, but the container needs time to boot and run Stage 1 (seed).
+resource "null_resource" "wait_for_datagen_seed" {
+  provisioner "local-exec" {
+    command = "echo 'Waiting 60s for datagen to seed Postgres...' && sleep 60"
+  }
+}
+
 resource "confluent_connector" "postgres_cdc_source" {
   environment {
     id = var.environment_id
@@ -40,6 +49,10 @@ resource "confluent_connector" "postgres_cdc_source" {
     "time.precision.mode"         = "connect"
     "tasks.max"                   = "1"
   }
+
+  depends_on = [
+    null_resource.wait_for_datagen_seed
+  ]
 }
 
 # Set upsert mode on CDC table for temporal join support
