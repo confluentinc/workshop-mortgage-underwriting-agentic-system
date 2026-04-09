@@ -342,7 +342,8 @@ resource "confluent_flink_statement" "alter_mortgage_applications" {
   }
 
   depends_on = [
-    confluent_connector.postgres_cdc_source
+    confluent_kafka_topic.mortgage-application-topic,
+    confluent_schema.avro-mortgage_applications
   ]
 }
 
