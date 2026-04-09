@@ -81,7 +81,7 @@ lab2/                      # Lab 2 instructions: AI agents for risk assessment +
 - Application IDs use UUIDs (`APP-<uuid>`) to avoid collisions on container restart
 - Picks applicants randomly from in-memory cache (999/1000 valid, 1/1000 = "-1" unmatched)
 - Property values: 13/14 standard (100K-500K), 1/14 high (1M-1.5M)
-- First 3 apps have payslips = "N/A", then 5/6 valid S3 URIs, 1/6 "N/A" (triggers DLQ)
+- First 3 apps have payslips = "N/A", then 9/10 valid S3 URIs, 1/10 "N/A" (triggers DLQ)
 
 **Thread 2 — Payments**
 - Starts immediately, runs forever, no cap
@@ -100,7 +100,7 @@ lab2/                      # Lab 2 instructions: AI agents for risk assessment +
 |-----------|---------|---------|---------------------|------|
 | Mortgage interval | `MORTGAGE_APP_INTERVAL_SECONDS` | 600 | 600 (default) | 60 |
 | Mortgage count | `MORTGAGE_APP_COUNT` | 20 | 20 (default) | -1 (continuous) |
-| Startup delay | `MORTGAGE_APP_STARTUP_DELAY_SECONDS` | 0 | 0 (default) | 300 |
+| Startup delay | `MORTGAGE_APP_STARTUP_DELAY_SECONDS` | 0 | 0 (default) | 0 |
 | CDC heartbeat interval | `CDC_HEARTBEAT_INTERVAL_SECONDS` | 10 | 10 (default) | 10 (default) |
 
 Workshop uses defaults via `local-datagen` module. Self-serve uses defaults via `ecs-datagen` module. Demo mode overrides values in `ecs-datagen` module call in `demo_mode/main.tf`.
