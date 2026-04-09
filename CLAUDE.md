@@ -204,13 +204,19 @@ The CDC table `PROD.public.applicant_credit_score` requires three ALTER TABLE st
 
 1. **`changelog.mode = 'upsert'`** — Without this, the default Debezium retract mode requires `REPLICA IDENTITY FULL` on the Postgres table (full `before` images for UPDATE events). Upsert mode avoids this requirement and infers PRIMARY KEY from the Kafka message key.
 
-2. **WATERMARK on `updated_at`** — The temporal join needs the right-side (CDC) watermark to advance. The `updated_at` column is populated via `DEFAULT NOW()` during seed and updated by the heartbeat thread. Without non-NULL timestamps in `updated_at`, the watermark stays at -infinity and the temporal join never emits.
+2. **WATERMARK on `updated_at`** — The temporal join needs the right-side (CDC) watermark to advance. The `updated_at` column is populated via `DEFAULT NOW()` during seed and updated by the heartbeat thread. Without non-NULL timestamps in `updated_at`, the watermark stays at -infinity and the temporal join never emits. The watermark delay is set to 5 seconds (`updated_at - INTERVAL '5' SECOND`). This delay directly impacts temporal join latency — the join won't emit until the CDC watermark passes the mortgage app's `application_ts`. Total latency ≈ watermark delay (5s) + heartbeat interval (5-10s) ≈ 10-15 seconds.
 
 3. **`time.precision.mode = 'connect'`** on the CDC connector — Debezium's default `adaptive` mode maps Postgres TIMESTAMP to BIGINT (microseconds since epoch). Flink cannot use BIGINT as a watermark field. The `connect` mode uses Kafka Connect's Timestamp logical type, which Flink interprets as `TIMESTAMP_LTZ(3)`.
 
 **Critical**: Do NOT set `changelog.mode = 'append'` on the CDC table. This exposes the raw Debezium envelope (`before`/`after` structs) instead of flattened columns, and treats every CDC record as a new INSERT — which causes duplicate join matches when the heartbeat produces update events.
 
 **Critical**: Do NOT set `value.format = 'avro-registry'` on the CDC table. This tells Flink to treat the data as generic Avro (not Debezium), preventing changelog interpretation and PRIMARY KEY inference.
+
+## Important: Temporal Join Latency
+
+In a temporal join (`FOR SYSTEM_TIME AS OF`), the join emits a result only when the **right-side** (versioned table) watermark advances past the left-side record's event time. The left-side watermark is NOT the bottleneck — even though the mortgage app has arrived, the join waits for the CDC watermark to confirm it has all updates up to that time.
+
+Total latency = CDC watermark delay + heartbeat interval. With 5s watermark delay and 5-10s heartbeat, expect ~10-15 seconds from mortgage app production to enriched output. To reduce latency: decrease the watermark delay or increase heartbeat frequency. Do NOT set watermark delay to 0 — some tolerance is needed for processing jitter.
 
 ## Important: CDC Topic Compaction
 
