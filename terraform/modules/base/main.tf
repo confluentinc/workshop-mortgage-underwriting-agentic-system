@@ -347,6 +347,42 @@ resource "confluent_flink_statement" "alter_mortgage_applications" {
   ]
 }
 
+# Add primary key on CDC table for temporal join support
+resource "confluent_flink_statement" "alter_credit_score_primary_key" {
+  organization {
+    id = data.confluent_organization.confluent_org.id
+  }
+  environment {
+    id = confluent_environment.staging.id
+  }
+  compute_pool {
+    id = confluent_flink_compute_pool.flinkpool-main.id
+  }
+  principal {
+    id = confluent_service_account.app-manager.id
+  }
+  rest_endpoint = data.confluent_flink_region.demo_flink_region.rest_endpoint
+  credentials {
+    key    = confluent_api_key.app-manager-flink-api-key.id
+    secret = confluent_api_key.app-manager-flink-api-key.secret
+  }
+
+  statement_name = "alter-credit-score-primary-key"
+
+  statement = <<-EOT
+    ALTER TABLE `${confluent_environment.staging.display_name}`.`${confluent_kafka_cluster.standard.display_name}`.`PROD.public.applicant_credit_score` ADD PRIMARY KEY (`applicant_id`) NOT ENFORCED;
+  EOT
+
+  properties = {
+    "sql.current-catalog"  = confluent_environment.staging.display_name
+    "sql.current-database" = confluent_kafka_cluster.standard.display_name
+  }
+
+  depends_on = [
+    confluent_connector.postgres_cdc_source
+  ]
+}
+
 # ------------------------------------------------------
 # MCP Connection
 # ------------------------------------------------------

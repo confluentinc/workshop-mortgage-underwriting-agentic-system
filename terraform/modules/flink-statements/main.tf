@@ -21,7 +21,6 @@ locals {
   flink_properties = {
     "sql.current-catalog"  = var.environment_display_name
     "sql.current-database" = var.kafka_cluster_display_name
-    "sql.state-ttl"        = "7d"
   }
 }
 
