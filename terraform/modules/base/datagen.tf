@@ -20,7 +20,7 @@ if (-not $runtime -and (Get-Command podman -ErrorAction SilentlyContinue)) {
 if (-not $runtime) { throw "No running container runtime found. Start Docker Desktop or Podman and retry." }
 & $runtime rm -f mortgage-datagen 2>$null
 & $runtime pull ghcr.io/ahmedszamzam/datagen:latest
-& $runtime run -d --name mortgage-datagen --env-file "${path.root}/../data-gen/.datagen.env" ghcr.io/ahmedszamzam/datagen:latest
+& $runtime run -d --restart on-failure --name mortgage-datagen --env-file "${path.root}/../data-gen/.datagen.env" ghcr.io/ahmedszamzam/datagen:latest
 EOT
   }
 
@@ -61,7 +61,7 @@ else
 fi
 $runtime rm -f mortgage-datagen >/dev/null 2>&1 || true
 $runtime pull ghcr.io/ahmedszamzam/datagen:latest
-$runtime run -d --name mortgage-datagen --env-file "${path.root}/../data-gen/.datagen.env" ghcr.io/ahmedszamzam/datagen:latest
+$runtime run -d --restart on-failure --name mortgage-datagen --env-file "${path.root}/../data-gen/.datagen.env" ghcr.io/ahmedszamzam/datagen:latest
 EOT
   }
 

@@ -98,7 +98,7 @@ public class DataGenerator {
                         open_credit_accounts INT,
                         total_credit_limit INT,
                         public_records INT,
-                        last_heartbeat TIMESTAMP
+                        updated_at TIMESTAMP DEFAULT NOW()
                     )
                     """);
             }
@@ -300,11 +300,15 @@ public class DataGenerator {
         if (CDC_HEARTBEAT_INTERVAL_SECONDS > 0) {
             heartbeatThread = new Thread(() -> {
                 try (Connection conn = getPostgresConnection()) {
-                    String updateSql = "UPDATE applicant_credit_score SET last_heartbeat = NOW() WHERE applicant_id = 'C-100000'";
+                    String updateSql = "UPDATE applicant_credit_score SET updated_at = NOW() WHERE applicant_id = ?";
                     int count = 0;
                     while (!Thread.currentThread().isInterrupted()) {
-                        try (Statement stmt = conn.createStatement()) {
-                            stmt.executeUpdate(updateSql);
+                        // Pick a random applicant from the in-memory cache
+                        Map<String, Object> applicant = allApplicants.get(random.nextInt(allApplicants.size()));
+                        String applicantId = (String) applicant.get("applicant_id");
+                        try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
+                            ps.setString(1, applicantId);
+                            ps.executeUpdate();
                         }
                         count++;
                         if (count % 100 == 0) {

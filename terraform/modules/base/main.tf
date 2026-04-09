@@ -296,6 +296,7 @@ resource "confluent_connector" "postgres_cdc_source" {
     "output.data.format"          = "AVRO"
     "output.key.format"           = "AVRO"
     "decimal.handling.mode"       = "double"
+    "time.precision.mode"         = "connect"
     "tasks.max"                   = "1"
   }
 
@@ -305,6 +306,7 @@ resource "confluent_connector" "postgres_cdc_source" {
     confluent_kafka_acl.app-manager-create-topic,
     confluent_kafka_acl.app-manager-read-on-group,
     confluent_kafka_acl.app-manager-describe-on-cluster,
+    confluent_kafka_topic.cdc-credit-score-topic,
     null_resource.datagen_container_unix,
     null_resource.datagen_container_windows,
   ]
@@ -380,6 +382,42 @@ resource "confluent_flink_statement" "alter_credit_score_upsert" {
 
   depends_on = [
     confluent_connector.postgres_cdc_source
+  ]
+}
+
+# Add watermark on CDC table using updated_at for temporal join
+resource "confluent_flink_statement" "alter_credit_score_watermark" {
+  organization {
+    id = data.confluent_organization.confluent_org.id
+  }
+  environment {
+    id = confluent_environment.staging.id
+  }
+  compute_pool {
+    id = confluent_flink_compute_pool.flinkpool-main.id
+  }
+  principal {
+    id = confluent_service_account.app-manager.id
+  }
+  rest_endpoint = data.confluent_flink_region.demo_flink_region.rest_endpoint
+  credentials {
+    key    = confluent_api_key.app-manager-flink-api-key.id
+    secret = confluent_api_key.app-manager-flink-api-key.secret
+  }
+
+  statement_name = "alter-credit-score-watermark"
+
+  statement = <<-EOT
+    ALTER TABLE `${confluent_environment.staging.display_name}`.`${confluent_kafka_cluster.standard.display_name}`.`PROD.public.applicant_credit_score` MODIFY WATERMARK FOR `updated_at` AS `updated_at` - INTERVAL '15' SECOND;
+  EOT
+
+  properties = {
+    "sql.current-catalog"  = confluent_environment.staging.display_name
+    "sql.current-database" = confluent_kafka_cluster.standard.display_name
+  }
+
+  depends_on = [
+    confluent_flink_statement.alter_credit_score_upsert
   ]
 }
 
@@ -601,6 +639,21 @@ resource "confluent_kafka_topic" "payment-history-topic" {
   credentials {
     key    = confluent_api_key.app-manager-kafka-api-key.id
     secret = confluent_api_key.app-manager-kafka-api-key.secret
+  }
+}
+
+resource "confluent_kafka_topic" "cdc-credit-score-topic" {
+  kafka_cluster {
+    id = confluent_kafka_cluster.standard.id
+  }
+  topic_name    = "PROD.public.applicant_credit_score"
+  rest_endpoint = confluent_kafka_cluster.standard.rest_endpoint
+  credentials {
+    key    = confluent_api_key.app-manager-kafka-api-key.id
+    secret = confluent_api_key.app-manager-kafka-api-key.secret
+  }
+  config = {
+    "cleanup.policy" = "compact"
   }
 }
 
