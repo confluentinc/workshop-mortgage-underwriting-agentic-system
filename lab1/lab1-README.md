@@ -183,7 +183,6 @@ Then, we will perform a **temporal join** between `enriched_mortgage_application
 1. Back in the [Flink UI](https://confluent.cloud/go/flink) on Confluent Cloud, run the following to create `applicant_payment_summary`—a new data product that aggregates all payments for each applicant.
 
    ```sql
-   SET 'sql.tables.scan.idle-timeout' = '15 s';
    SET 'client.statement-name' = 'applicant-payment-summary-materializer';
    CREATE TABLE `applicant_payment_summary` (
    `applicant_id` STRING NOT NULL,
@@ -230,7 +229,6 @@ Then, we will perform a **temporal join** between `enriched_mortgage_application
 3. Perform a **temporal join** between `enriched_mortgage_applications` and `applicant_payment_summary`. This joins each mortgage application with the payment history as it existed at the time of the application.
 
    ```sql
-   SET 'sql.tables.scan.idle-timeout' = '15 s';
    SET 'client.statement-name' = 'enriched-mortgage-payments-materializer';
    CREATE TABLE `enriched_mortgage_with_payments`
    WITH ('changelog.mode' = 'append')

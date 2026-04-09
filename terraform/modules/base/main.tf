@@ -609,8 +609,9 @@ resource "confluent_kafka_topic" "incomplete-mortgage-applications-topic" {
   kafka_cluster {
     id = confluent_kafka_cluster.standard.id
   }
-  topic_name         = "incomplete_mortgage_applications"
-  rest_endpoint      = confluent_kafka_cluster.standard.rest_endpoint
+  topic_name       = "incomplete_mortgage_applications"
+  partitions_count = 1
+  rest_endpoint    = confluent_kafka_cluster.standard.rest_endpoint
   credentials {
     key    = confluent_api_key.app-manager-kafka-api-key.id
     secret = confluent_api_key.app-manager-kafka-api-key.secret
@@ -621,21 +622,22 @@ resource "confluent_kafka_topic" "mortgage-application-topic" {
   kafka_cluster {
     id = confluent_kafka_cluster.standard.id
   }
-  topic_name         = "mortgage_applications"
-  rest_endpoint      = confluent_kafka_cluster.standard.rest_endpoint
+  topic_name       = "mortgage_applications"
+  partitions_count = 1
+  rest_endpoint    = confluent_kafka_cluster.standard.rest_endpoint
   credentials {
     key    = confluent_api_key.app-manager-kafka-api-key.id
     secret = confluent_api_key.app-manager-kafka-api-key.secret
   }
 }
 
-
 resource "confluent_kafka_topic" "payment-history-topic" {
   kafka_cluster {
     id = confluent_kafka_cluster.standard.id
   }
-  topic_name         = "payment_history"
-  rest_endpoint      = confluent_kafka_cluster.standard.rest_endpoint
+  topic_name       = "payment_history"
+  partitions_count = 1
+  rest_endpoint    = confluent_kafka_cluster.standard.rest_endpoint
   credentials {
     key    = confluent_api_key.app-manager-kafka-api-key.id
     secret = confluent_api_key.app-manager-kafka-api-key.secret
@@ -646,8 +648,9 @@ resource "confluent_kafka_topic" "cdc-credit-score-topic" {
   kafka_cluster {
     id = confluent_kafka_cluster.standard.id
   }
-  topic_name    = "PROD.public.applicant_credit_score"
-  rest_endpoint = confluent_kafka_cluster.standard.rest_endpoint
+  topic_name       = "PROD.public.applicant_credit_score"
+  partitions_count = 1
+  rest_endpoint    = confluent_kafka_cluster.standard.rest_endpoint
   credentials {
     key    = confluent_api_key.app-manager-kafka-api-key.id
     secret = confluent_api_key.app-manager-kafka-api-key.secret

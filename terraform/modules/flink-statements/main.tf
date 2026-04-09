@@ -19,9 +19,8 @@ locals {
   }
 
   flink_properties = {
-    "sql.current-catalog"              = var.environment_display_name
-    "sql.current-database"             = var.kafka_cluster_display_name
-    "sql.tables.scan.idle-timeout"     = "15 s"
+    "sql.current-catalog"  = var.environment_display_name
+    "sql.current-database" = var.kafka_cluster_display_name
   }
 }
 
@@ -72,6 +71,7 @@ resource "confluent_flink_statement" "enriched_mortgage_applications" {
       application_ts TIMESTAMP_LTZ(3),
       WATERMARK FOR application_ts AS application_ts - INTERVAL '5' SECOND
     )
+    WITH ('kafka.partitions' = '1')
     AS
     SELECT
       m.application_id,
@@ -141,6 +141,7 @@ resource "confluent_flink_statement" "applicant_payment_summary" {
       )>,
       WATERMARK FOR `updated_at` AS `updated_at` - INTERVAL '5' SECOND
     )
+    WITH ('kafka.partitions' = '1')
     AS
     SELECT
       applicant_id,
@@ -196,7 +197,7 @@ resource "confluent_flink_statement" "enriched_mortgage_with_payments" {
 
   statement = <<-SQL
     CREATE TABLE `${var.environment_display_name}`.`${var.kafka_cluster_display_name}`.`enriched_mortgage_with_payments`
-    WITH ('changelog.mode' = 'append')
+    WITH ('changelog.mode' = 'append', 'kafka.partitions' = '1')
     AS
     SELECT
       m.application_id,
@@ -350,7 +351,9 @@ resource "confluent_flink_statement" "mortgage_validated_apps" {
   statement_name = "mortgage-risk-agent"
 
   statement = <<-SQL
-    CREATE TABLE `${var.environment_display_name}`.`${var.kafka_cluster_display_name}`.`mortgage_validated_apps` AS
+    CREATE TABLE `${var.environment_display_name}`.`${var.kafka_cluster_display_name}`.`mortgage_validated_apps`
+    WITH ('kafka.partitions' = '1')
+    AS
     SELECT
       m.application_id,
       m.applicant_id,
@@ -524,7 +527,9 @@ resource "confluent_flink_statement" "mortgage_decisions" {
   statement_name = "mortgage-decisions-agent"
 
   statement = <<-SQL
-    CREATE TABLE `${var.environment_display_name}`.`${var.kafka_cluster_display_name}`.`mortgage_decisions` AS
+    CREATE TABLE `${var.environment_display_name}`.`${var.kafka_cluster_display_name}`.`mortgage_decisions`
+    WITH ('kafka.partitions' = '1')
+    AS
     SELECT
       m.application_id,
       m.applicant_id,
