@@ -45,6 +45,10 @@ output "environment_id" {
   value = confluent_environment.staging.id
 }
 
+output "kafka_cluster_id" {
+  value = confluent_kafka_cluster.standard.id
+}
+
 output "environment_display_name" {
   value = confluent_environment.staging.display_name
 }
@@ -75,37 +79,30 @@ output "service_account_id" {
   value = confluent_service_account.app-manager.id
 }
 
-output "postgres_cdc_connector" {
-  value = {
-    database_hostname = var.db_host
-    database_port     = var.db_port
-    database_username = var.db_username
-    database_password = var.db_password
-    database_name     = var.db_name
-    slot_name         = "${var.db_name}_debezium"
-    publication_name  = "${var.db_name}_dbz_publication"
-  }
+output "kafka_bootstrap_servers" {
+  value = confluent_kafka_cluster.standard.bootstrap_endpoint
+}
+
+output "kafka_api_key" {
+  value     = confluent_api_key.app-manager-kafka-api-key.id
   sensitive = true
 }
 
-# Create data generator environment file
-resource "local_file" "datagen_env" {
-  filename = "${path.root}/../data-gen/.datagen.env"
-  content  = <<-EOT
-KAFKA_BOOTSTRAP_SERVERS=${confluent_kafka_cluster.standard.bootstrap_endpoint}
-KAFKA_API_KEY=${confluent_api_key.app-manager-kafka-api-key.id}
-KAFKA_API_SECRET=${confluent_api_key.app-manager-kafka-api-key.secret}
-SCHEMA_REGISTRY_URL=${data.confluent_schema_registry_cluster.sr-cluster.rest_endpoint}
-SCHEMA_REGISTRY_API_KEY=${confluent_api_key.app-manager-schema-registry-api-key.id}
-SCHEMA_REGISTRY_API_SECRET=${confluent_api_key.app-manager-schema-registry-api-key.secret}
-PG_HOST=${var.db_host}
-PG_PORT=${var.db_port}
-PG_DATABASE=${var.db_name}
-PG_USERNAME=${var.db_username}
-PG_PASSWORD=${var.db_password}
-MORTGAGE_APP_INTERVAL_SECONDS=${var.mortgage_app_interval}
-MORTGAGE_APP_COUNT=${var.mortgage_app_count}
-MORTGAGE_APP_STARTUP_DELAY_SECONDS=${var.mortgage_app_startup_delay}
-NEW_APPLICANT_INTERVAL_SECONDS=${var.new_applicant_interval}
-  EOT
+output "kafka_api_secret" {
+  value     = confluent_api_key.app-manager-kafka-api-key.secret
+  sensitive = true
+}
+
+output "schema_registry_url" {
+  value = data.confluent_schema_registry_cluster.sr-cluster.rest_endpoint
+}
+
+output "schema_registry_api_key" {
+  value     = confluent_api_key.app-manager-schema-registry-api-key.id
+  sensitive = true
+}
+
+output "schema_registry_api_secret" {
+  value     = confluent_api_key.app-manager-schema-registry-api-key.secret
+  sensitive = true
 }

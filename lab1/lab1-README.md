@@ -6,7 +6,7 @@ By the end of this lab, we will have built a real-time, contextualized data prod
 
 ### Steps:
 1. Use the **Postgres CDC Source connector** to send credit score data from Postgres to the `APPLICANT_CREDIT_SCORE` topic in Confluent Cloud.
-2. Use the **Flink Java Table API** to join `mortgage_applications` with `APPLICANT_CREDIT_SCORE`, creating a new enriched real-time data product called `enriched_mortgage_applications`.
+2. Use a **temporal join** to join `mortgage_applications` with `APPLICANT_CREDIT_SCORE`, creating `enriched_mortgage_applications`.
 3. Use **Flink SQL** to join `enriched_mortgage_applications` with `payment_history`, resulting in the final real-time data product that will be used in the next lab.
 
 ![Architecture](./assets/lab1-hld.png)
@@ -33,7 +33,7 @@ The rules were already created by Terraform, there is no need to do anything her
 
 ## **Step 2: Verifying the Postgres CDC Source Connector**
 
-The Postgres CDC Source Connector and its configuration were automatically deployed by Terraform. The connector streams credit score data from Postgres to the `PROD.public.applicant_credit_score` topic in Confluent Cloud. Terraform also configured the topic's changelog mode to `append`, which is required for joining with `mortgage_applications`.
+The Postgres CDC Source Connector and its configuration were automatically deployed by Terraform. The connector streams credit score data from Postgres to the `PROD.public.applicant_credit_score` topic in Confluent Cloud. The CDC table is automatically interpreted by Flink as a versioned table with Debezium changelog semantics — columns are flattened (e.g., `credit_score` not `after.credit_score`) and the PRIMARY KEY is inferred from the Debezium key schema. Terraform also added a WATERMARK on `mortgage_applications.application_ts` to enable temporal joins.
 
 ![Architecture](./assets/lab1-db-hld.png)
 
@@ -130,6 +130,7 @@ Install Java 17 and Maven if not already installed:
      application_ts TIMESTAMP_LTZ(3),
      WATERMARK FOR application_ts AS application_ts - INTERVAL '5' SECOND
    )
+   DISTRIBUTED INTO 1 BUCKETS
    AS
    SELECT
      m.application_id,
@@ -143,15 +144,15 @@ Install Java 17 and Maven if not already installed:
      m.property_state,
      CAST(m.property_value AS DOUBLE) AS property_value,
      m.employment_status,
-     c.after.credit_score AS credit_score,
-     c.after.credit_utilization AS credit_utilization,
-     c.after.open_credit_accounts AS open_credit_accounts,
-     c.after.public_records AS recent_defaults,
+     c.credit_score AS credit_score,
+     c.credit_utilization AS credit_utilization,
+     c.open_credit_accounts AS open_credit_accounts,
+     c.public_records AS recent_defaults,
      CAST(ROUND((CAST(m.loan_amount AS DECIMAL(10, 2)) / CAST(m.income AS DECIMAL(10, 2))) * 100, 2) AS DOUBLE) AS debt_to_income_ratio,
      m.application_ts
    FROM `mortgage_applications` m
-   JOIN `PROD.public.applicant_credit_score` c
-   ON m.applicant_id = c.after.applicant_id;
+   JOIN `PROD.public.applicant_credit_score` FOR SYSTEM_TIME AS OF m.`application_ts` AS c
+   ON m.applicant_id = c.applicant_id;
    ```
 
 <!-- -->
@@ -197,6 +198,7 @@ Then, we will perform a **temporal join** between `enriched_mortgage_application
    )>,
    WATERMARK FOR `updated_at` AS `updated_at` - INTERVAL '5' SECOND
    )
+   DISTRIBUTED INTO 1 BUCKETS
    AS
    SELECT 
    applicant_id,
@@ -231,6 +233,7 @@ Then, we will perform a **temporal join** between `enriched_mortgage_application
    ```sql
    SET 'client.statement-name' = 'enriched-mortgage-payments-materializer';
    CREATE TABLE `enriched_mortgage_with_payments`
+   DISTRIBUTED INTO 1 BUCKETS
    WITH ('changelog.mode' = 'append')
       AS
       SELECT

@@ -28,3 +28,15 @@ output "bedrock_secret_access_key" {
   value     = aws_iam_access_key.confluent_bedrock_access_key.secret
   sensitive = true
 }
+
+output "vpc_id" {
+  value = aws_vpc.vpc.id
+}
+
+output "subnet_ids" {
+  value = [aws_subnet.public_subnet.id, aws_subnet.public_subnet_2.id]
+}
+
+output "security_group_id" {
+  value = aws_security_group.sg.id
+}

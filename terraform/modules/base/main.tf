@@ -262,56 +262,8 @@ resource "confluent_kafka_acl" "app-manager-read-on-group" {
   }
 }
 
-# ------------------------------------------------------
-# Connectors
-# ------------------------------------------------------
-
-resource "confluent_connector" "postgres_cdc_source" {
-  environment {
-    id = confluent_environment.staging.id
-  }
-  kafka_cluster {
-    id = confluent_kafka_cluster.standard.id
-  }
-
-  config_sensitive = {
-    "database.password" = var.db_password
-    "kafka.api.secret"  = confluent_api_key.app-manager-kafka-api-key.secret
-  }
-
-  config_nonsensitive = {
-    "connector.class"             = "PostgresCdcSourceV2"
-    "name"                        = "${var.db_name}-postgres-cdc-source"
-    "kafka.auth.mode"             = "KAFKA_API_KEY"
-    "kafka.api.key"               = confluent_api_key.app-manager-kafka-api-key.id
-    "database.hostname"           = var.db_host
-    "database.port"               = tostring(var.db_port)
-    "database.user"               = var.db_username
-    "database.dbname"             = var.db_name
-    "topic.prefix"                = "PROD"
-    "table.include.list"          = "public.applicant_credit_score"
-    "slot.name"                   = "${var.db_name}_debezium"
-    "publication.name"            = "${var.db_name}_dbz_publication"
-    "publication.autocreate.mode" = "filtered"
-    "output.data.format"          = "AVRO"
-    "output.key.format"           = "AVRO"
-    "decimal.handling.mode"       = "double"
-    "tasks.max"                   = "1"
-  }
-
-  depends_on = [
-    confluent_kafka_acl.app-manager-read-on-topic,
-    confluent_kafka_acl.app-manager-write-on-topic,
-    confluent_kafka_acl.app-manager-create-topic,
-    confluent_kafka_acl.app-manager-read-on-group,
-    confluent_kafka_acl.app-manager-describe-on-cluster,
-    null_resource.datagen_container_unix,
-    null_resource.datagen_container_windows,
-  ]
-}
-
-# Set changelog mode on the CDC topic for joining with mortgage_applications
-resource "confluent_flink_statement" "alter_credit_score_table" {
+# Add watermark on mortgage_applications for temporal join support
+resource "confluent_flink_statement" "alter_mortgage_applications" {
   organization {
     id = data.confluent_organization.confluent_org.id
   }
@@ -330,10 +282,10 @@ resource "confluent_flink_statement" "alter_credit_score_table" {
     secret = confluent_api_key.app-manager-flink-api-key.secret
   }
 
-  statement_name = "alter-credit-score-changelog-mode"
+  statement_name = "alter-mortgage-applications-watermark"
 
   statement = <<-EOT
-    ALTER TABLE `${confluent_environment.staging.display_name}`.`${confluent_kafka_cluster.standard.display_name}`.`PROD.public.applicant_credit_score` SET ('changelog.mode' = 'append', 'value.format' = 'avro-registry');
+    ALTER TABLE `${confluent_environment.staging.display_name}`.`${confluent_kafka_cluster.standard.display_name}`.`mortgage_applications` MODIFY WATERMARK FOR `application_ts` AS `application_ts` - INTERVAL '5' SECOND;
   EOT
 
   properties = {
@@ -342,7 +294,8 @@ resource "confluent_flink_statement" "alter_credit_score_table" {
   }
 
   depends_on = [
-    confluent_connector.postgres_cdc_source
+    confluent_kafka_topic.mortgage-application-topic,
+    confluent_schema.avro-mortgage_applications
   ]
 }
 
@@ -534,8 +487,9 @@ resource "confluent_kafka_topic" "incomplete-mortgage-applications-topic" {
   kafka_cluster {
     id = confluent_kafka_cluster.standard.id
   }
-  topic_name         = "incomplete_mortgage_applications"
-  rest_endpoint      = confluent_kafka_cluster.standard.rest_endpoint
+  topic_name       = "incomplete_mortgage_applications"
+  partitions_count = 1
+  rest_endpoint    = confluent_kafka_cluster.standard.rest_endpoint
   credentials {
     key    = confluent_api_key.app-manager-kafka-api-key.id
     secret = confluent_api_key.app-manager-kafka-api-key.secret
@@ -546,24 +500,41 @@ resource "confluent_kafka_topic" "mortgage-application-topic" {
   kafka_cluster {
     id = confluent_kafka_cluster.standard.id
   }
-  topic_name         = "mortgage_applications"
-  rest_endpoint      = confluent_kafka_cluster.standard.rest_endpoint
+  topic_name       = "mortgage_applications"
+  partitions_count = 1
+  rest_endpoint    = confluent_kafka_cluster.standard.rest_endpoint
   credentials {
     key    = confluent_api_key.app-manager-kafka-api-key.id
     secret = confluent_api_key.app-manager-kafka-api-key.secret
   }
 }
 
-
 resource "confluent_kafka_topic" "payment-history-topic" {
   kafka_cluster {
     id = confluent_kafka_cluster.standard.id
   }
-  topic_name         = "payment_history"
-  rest_endpoint      = confluent_kafka_cluster.standard.rest_endpoint
+  topic_name       = "payment_history"
+  partitions_count = 1
+  rest_endpoint    = confluent_kafka_cluster.standard.rest_endpoint
   credentials {
     key    = confluent_api_key.app-manager-kafka-api-key.id
     secret = confluent_api_key.app-manager-kafka-api-key.secret
+  }
+}
+
+resource "confluent_kafka_topic" "cdc-credit-score-topic" {
+  kafka_cluster {
+    id = confluent_kafka_cluster.standard.id
+  }
+  topic_name       = "PROD.public.applicant_credit_score"
+  partitions_count = 1
+  rest_endpoint    = confluent_kafka_cluster.standard.rest_endpoint
+  credentials {
+    key    = confluent_api_key.app-manager-kafka-api-key.id
+    secret = confluent_api_key.app-manager-kafka-api-key.secret
+  }
+  config = {
+    "cleanup.policy" = "compact"
   }
 }
 
