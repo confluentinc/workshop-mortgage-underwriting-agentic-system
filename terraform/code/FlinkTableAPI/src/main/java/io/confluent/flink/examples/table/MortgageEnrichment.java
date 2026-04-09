@@ -5,7 +5,6 @@ import io.confluent.flink.plugin.ConfluentTableDescriptor;
 
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.api.Schema;
-import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableEnvironment;
 
 import static org.apache.flink.table.api.Expressions.*;
@@ -66,63 +65,32 @@ public class MortgageEnrichment {
                         .option("value.format", "avro-registry")
                         .build());
 
-        Table enrichedApplications =
-                env.from("mortgage_applications")
-                        .select(
-                                $("application_id"),
-                                $("customer_email"),
-                                $("customer_name"),
-                                $("applicant_id"),
-                                $("income"),
-                                $("payslips"),
-                                $("loan_amount"),
-                                $("property_address"),
-                                $("property_state"),
-                                $("property_value"),
-                                $("employment_status"),
-                                $("application_ts"))
-                        .join(
-                                env.from("`PROD.public.applicant_credit_score`")
-                                        .select(
-                                                $("after")
-                                                        .get("applicant_id")
-                                                        .as("credit_applicant_id"),
-                                                $("after").get("credit_score").as("credit_score"),
-                                                $("after")
-                                                        .get("credit_utilization")
-                                                        .as("credit_utilization"),
-                                                $("after")
-                                                        .get("open_credit_accounts")
-                                                        .as("open_credit_accounts"),
-                                                $("after")
-                                                        .get("public_records")
-                                                        .as("public_records")))
-                        .where($("applicant_id").isEqual($("credit_applicant_id")))
-                        .select(
-                                $("application_id"),
-                                $("customer_email"),
-                                $("customer_name").as("borrower_name"),
-                                $("applicant_id"),
-                                $("income"),
-                                $("payslips"),
-                                $("loan_amount"),
-                                $("property_address"),
-                                $("property_state"),
-                                $("property_value"),
-                                $("employment_status"),
-                                $("credit_score").as("credit_score"),
-                                $("credit_utilization").as("credit_utilization"),
-                                $("open_credit_accounts").as("open_credit_accounts"),
-                                $("public_records").as("recent_defaults"),
-                                $("loan_amount")
-                                        .cast(DataTypes.DECIMAL(10, 2))
-                                        .dividedBy($("income").cast(DataTypes.DECIMAL(10, 2)))
-                                        .times(100)
-                                        .round(2)
-                                        .as("debt_to_income_ratio"),
-                                $("application_ts").as("application_ts"));
-
-        // Insert the results into the created table
-        enrichedApplications.executeInsert(ENRICHED_MORTGAGE_TABLE);
+        // Use SQL for the temporal join — the Table API doesn't support
+        // temporal join syntax directly, and the CDC table in Debezium retract
+        // mode requires a temporal join to avoid retractions in the output.
+        env.executeSql("""
+                INSERT INTO enriched_mortgage_applications
+                SELECT
+                  m.application_id,
+                  m.customer_email,
+                  m.customer_name AS borrower_name,
+                  m.applicant_id,
+                  CAST(m.income AS DOUBLE) AS income,
+                  m.payslips,
+                  CAST(m.loan_amount AS DOUBLE) AS loan_amount,
+                  m.property_address,
+                  m.property_state,
+                  CAST(m.property_value AS DOUBLE) AS property_value,
+                  m.employment_status,
+                  c.credit_score AS credit_score,
+                  c.credit_utilization AS credit_utilization,
+                  c.open_credit_accounts AS open_credit_accounts,
+                  c.public_records AS recent_defaults,
+                  CAST(ROUND((CAST(m.loan_amount AS DECIMAL(10, 2)) / CAST(m.income AS DECIMAL(10, 2))) * 100, 2) AS DOUBLE) AS debt_to_income_ratio,
+                  m.application_ts
+                FROM `mortgage_applications` m
+                JOIN `PROD.public.applicant_credit_score` FOR SYSTEM_TIME AS OF m.`application_ts` AS c
+                ON m.applicant_id = c.applicant_id
+                """);
     }
 }

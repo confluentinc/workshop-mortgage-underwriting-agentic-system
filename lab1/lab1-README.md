@@ -86,8 +86,6 @@ Install Java 17 and Maven if not already installed:
    >
    > Try running `mvn clean package -Dspotless.check.skip=true`
 
-   > **Note:** The Java Table API code currently uses a regular join against the CDC table with `after` struct access. For the temporal join approach used in Option B, the Java code would need to be updated. Option B (Flink SQL) is recommended for this lab.
-
 4. Run the compiled application. To get the exact command, run `terraform output` from the Terraform directory. Look for the value of `Flink_exec_command.` The command should look like this:
    ```
    java -jar target/flink-table-api-java-demo-0.1.jar '<Confluent_environment_name>' '<confluent_cluster_name>'
