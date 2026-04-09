@@ -347,8 +347,8 @@ resource "confluent_flink_statement" "alter_mortgage_applications" {
   ]
 }
 
-# Add primary key on CDC table for temporal join support
-resource "confluent_flink_statement" "alter_credit_score_primary_key" {
+# Set upsert mode on CDC table for temporal join support
+resource "confluent_flink_statement" "alter_credit_score_upsert" {
   organization {
     id = data.confluent_organization.confluent_org.id
   }
@@ -370,7 +370,7 @@ resource "confluent_flink_statement" "alter_credit_score_primary_key" {
   statement_name = "alter-credit-score-primary-key"
 
   statement = <<-EOT
-    ALTER TABLE `${confluent_environment.staging.display_name}`.`${confluent_kafka_cluster.standard.display_name}`.`PROD.public.applicant_credit_score` ADD PRIMARY KEY (`applicant_id`) NOT ENFORCED;
+    ALTER TABLE `${confluent_environment.staging.display_name}`.`${confluent_kafka_cluster.standard.display_name}`.`PROD.public.applicant_credit_score` SET ('changelog.mode' = 'upsert');
   EOT
 
   properties = {
