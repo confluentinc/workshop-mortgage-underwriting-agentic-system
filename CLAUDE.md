@@ -14,7 +14,7 @@ PROD.public.applicant_credit_score ──┘          applicant_payment_summary 
                                                  payment_history ─────────┘
 ```
 
-**Data flow**: Mortgage applications and payment history are produced to Kafka by the data generator. Credit scores are sourced from Postgres via CDC connector. Flink SQL enriches mortgage apps with credit scores and payment history using joins. Two AI agents then process the enriched data — one for fraud/risk assessment, one for approval/rejection decisions and email notifications.
+**Data flow**: Mortgage applications and payment history are produced to Kafka by the data generator. Credit scores are sourced from Postgres via CDC connector. The CDC table is interpreted by Flink as a versioned table (Debezium upsert mode with flattened columns). Flink SQL enriches mortgage apps with credit scores via a **temporal join** and payment history via a second temporal join. Two AI agents then process the enriched data — one for fraud/risk assessment, one for approval/rejection decisions and email notifications.
 
 ## Deployment Modes
 
@@ -22,7 +22,7 @@ PROD.public.applicant_credit_score ──┘          applicant_payment_summary 
 |------|-----------|-------------|
 | **Workshop** | `terraform/workshop/` | Instructor provides Postgres DB and Bedrock credentials. Participants manually create Flink SQL statements in Labs 1 & 2. |
 | **Self-serve** | `terraform/self-serve/` | Terraform provisions AWS infrastructure (EC2 Postgres, IAM for Bedrock) in addition to base. Participants still do labs manually. |
-| **Demo** | `terraform/demo_mode/` | Fully automated — provisions AWS infra, all Flink DDL statements deployed via Terraform. Data gen runs continuously. |
+| **Demo** | `terraform/demo_mode/` | Fully automated — provisions AWS infra, all Flink DDL statements deployed via Terraform. Data gen runs continuously. Designed for always-on operation. |
 
 All three modes use `module.base` (`terraform/modules/base/`). Demo mode additionally uses `module.flink_statements` (`terraform/modules/flink-statements/`) and `module.aws` (`terraform/modules/aws/`). Self-serve additionally uses `module.aws`.
 
@@ -53,9 +53,11 @@ lab2/                      # Lab 2 instructions: AI agents for risk assessment +
 ### Data Generator (`terraform/data-gen/datagen-app/`)
 - **Image**: `ghcr.io/ahmedszamzam/datagen:latest` — single image for all modes, behavior controlled by env vars
 - **Java 17**, Maven, uses Kafka Avro serializer + JavaFaker + PostgreSQL JDBC
+- **Restart policy**: `--restart on-failure` — auto-recovers if Postgres isn't ready at container start (race condition with EC2 boot)
 
 #### Stage 1: Seed Postgres (immediate, no throttle)
-- Creates `applicant_credit_score` table and inserts 702 rows:
+- Creates `applicant_credit_score` table with columns: `applicant_id` (PK), `applicant_name`, `credit_score`, `credit_utilization`, `open_credit_accounts`, `total_credit_limit`, `public_records`, `updated_at` (TIMESTAMP, DEFAULT NOW())
+- Inserts 702 rows with `updated_at` populated (critical for CDC watermark — NULL timestamps prevent watermark advancement):
   - 100 high credit (750-850 score, 0 public records)
   - 500 medium credit (501-750 score)
   - 100 low credit (300-500 score)
@@ -73,6 +75,7 @@ lab2/                      # Lab 2 instructions: AI agents for risk assessment +
 - Waits `MORTGAGE_APP_STARTUP_DELAY_SECONDS` (default 0) before starting
 - Produces `MORTGAGE_APP_COUNT` apps (default 20, -1 = continuous)
 - Interval: `MORTGAGE_APP_INTERVAL_SECONDS` (default 600)
+- Application IDs use UUIDs (`APP-<uuid>`) to avoid collisions on container restart
 - Picks applicants randomly from in-memory cache (999/1000 valid, 1/1000 = "-1" unmatched)
 - Property values: 13/14 standard (100K-500K), 1/14 high (1M-1.5M)
 - First 3 apps have payslips = "N/A", then 5/6 valid S3 URIs, 1/6 "N/A" (triggers DLQ)
@@ -82,11 +85,11 @@ lab2/                      # Lab 2 instructions: AI agents for risk assessment +
 - 1 payment every 5-10 seconds (random throttle)
 - Weighted tiers: high credit (200) → 100% success, John Doe (1) → 100% success, medium (200) → 90% success, low (200) → 20% success, Omar Soli (1) → 20% success
 
-**Thread 3 — CDC Heartbeat** (enabled by default, interval 10s)
+**Thread 3 — CDC Heartbeat** (enabled by default)
 - Controlled by `CDC_HEARTBEAT_INTERVAL_SECONDS` (default 10, 0 = disabled)
-- Updates `last_heartbeat = NOW()` on applicant C-100000 (John Doe) every 5-10 seconds (random)
+- Updates `updated_at = NOW()` on a random applicant every 5-10 seconds (random sleep)
 - Advances the CDC topic watermark without inserting new rows into Postgres
-- Required for the temporal join in Statement 1 to make progress
+- Required for the temporal join in Statement 1 to make progress — without heartbeat, the CDC watermark stalls and the temporal join buffers indefinitely
 
 #### Data Generator Parameters by Mode
 
@@ -101,7 +104,7 @@ Workshop/self-serve don't pass these values — they use defaults. Demo mode set
 
 ### Flink Statements Module (`terraform/modules/flink-statements/`)
 8 statements deployed sequentially via `depends_on`:
-1. CTAS `enriched_mortgage_applications` — temporal join of mortgage apps with CDC credit score versioned table
+1. CTAS `enriched_mortgage_applications` — **temporal join** (`FOR SYSTEM_TIME AS OF m.application_ts`) of mortgage apps with CDC credit score versioned table. Uses flattened Debezium columns (`c.credit_score`, not `c.after.credit_score`)
 2. CTAS `applicant_payment_summary` — aggregates payment history per applicant using ARRAY_AGG
 3. CTAS `enriched_mortgage_with_payments` — temporal join (LEFT JOIN FOR SYSTEM_TIME AS OF), no property_value filter
 4. CREATE AGENT `mortgage_risk_agent` — Flink Streaming Agent for fraud/credit risk assessment, outputs JSON with fraud_risk_score, loan_stack_risk, risk_category, agent_reasoning
@@ -115,13 +118,15 @@ Workshop/self-serve don't pass these values — they use defaults. Demo mode set
 - Flink compute pool (20 max CFU)
 - Service account with EnvironmentAdmin role binding
 - API keys: Kafka, Schema Registry, Flink management
-- Topics: `mortgage_applications`, `payment_history`, `incomplete_mortgage_applications` (DLQ)
+- Topics: `mortgage_applications`, `payment_history`, `incomplete_mortgage_applications` (DLQ), `PROD.public.applicant_credit_score` (pre-created with `cleanup.policy=compact` for restart safety)
 - AVRO schemas with data quality rules (CEL validation: payslip URI must match `^s3://riverbank-payslip-bucket/[a-zA-Z0-9._/-]+$` → DLQ routing on failure)
-- Postgres CDC Source Connector (Debezium v2, table `public.applicant_credit_score`, topic prefix `PROD`)
+- Postgres CDC Source Connector (Debezium v2, table `public.applicant_credit_score`, topic prefix `PROD`, `time.precision.mode=connect` for proper timestamp mapping)
 - `alter_mortgage_applications` Flink statement — adds WATERMARK on `application_ts` for temporal join support
+- `alter_credit_score_upsert` Flink statement — sets `changelog.mode = 'upsert'` on CDC table (required for temporal join — enables flattened columns, inferred PRIMARY KEY from Kafka key, and avoids retract mode's requirement for full `before` images)
+- `alter_credit_score_watermark` Flink statement — adds WATERMARK on `updated_at` for the CDC versioned table (advances via heartbeat)
 - Bedrock connection + LLM model (`llm_textgen_model` — Claude 3.7 Sonnet, 50K max tokens)
 - MCP connection (configurable endpoint + transport type) for external tool access
-- Data generator Docker container (`mortgage-datagen`) — pulls from GHCR, passes env vars via `.datagen.env`
+- Data generator Docker container (`mortgage-datagen`) — pulls from GHCR, passes env vars via `.datagen.env`, `--restart on-failure`
 - Webapp Docker container (`mortgage-webapp`) — built locally from `webapp/Dockerfile`, port 5001→5000
 - Outputs 9 values for flink-statements module: org_id, env_id, display names, flink pool, API keys, service account
 
@@ -193,11 +198,43 @@ In Flink SQL, `CONCAT(a, b, c)` returns NULL if any argument is NULL — unlike 
 ### Keep lab instructions in sync with flink-statements module
 `lab1/lab1-README.md`, `lab2/lab2-README.md`, and `terraform/modules/flink-statements/main.tf` contain the same Flink SQL statements. When modifying one, always update the others to keep them consistent.
 
+## Important: CDC Table Configuration for Temporal Joins
+
+The CDC table `PROD.public.applicant_credit_score` requires three ALTER TABLE statements in the base module for the temporal join to work:
+
+1. **`changelog.mode = 'upsert'`** — Without this, the default Debezium retract mode requires `REPLICA IDENTITY FULL` on the Postgres table (full `before` images for UPDATE events). Upsert mode avoids this requirement and infers PRIMARY KEY from the Kafka message key.
+
+2. **WATERMARK on `updated_at`** — The temporal join needs the right-side (CDC) watermark to advance. The `updated_at` column is populated via `DEFAULT NOW()` during seed and updated by the heartbeat thread. Without non-NULL timestamps in `updated_at`, the watermark stays at -infinity and the temporal join never emits.
+
+3. **`time.precision.mode = 'connect'`** on the CDC connector — Debezium's default `adaptive` mode maps Postgres TIMESTAMP to BIGINT (microseconds since epoch). Flink cannot use BIGINT as a watermark field. The `connect` mode uses Kafka Connect's Timestamp logical type, which Flink interprets as `TIMESTAMP_LTZ(3)`.
+
+**Critical**: Do NOT set `changelog.mode = 'append'` on the CDC table. This exposes the raw Debezium envelope (`before`/`after` structs) instead of flattened columns, and treats every CDC record as a new INSERT — which causes duplicate join matches when the heartbeat produces update events.
+
+**Critical**: Do NOT set `value.format = 'avro-registry'` on the CDC table. This tells Flink to treat the data as generic Avro (not Debezium), preventing changelog interpretation and PRIMARY KEY inference.
+
+## Important: CDC Topic Compaction
+
+The `PROD.public.applicant_credit_score` topic is pre-created with `cleanup.policy=compact` in the base module. This ensures the latest credit score per applicant is retained forever (not deleted after 7-day default retention). Without compaction, a Flink job restart after retention expiry would lose credit scores and the temporal join would produce no matches.
+
+The topic is created before the CDC connector starts. The connector detects the existing topic and uses it as-is, preserving the compaction config.
+
 ## Important: Terraform Dependency Ordering
 
-The `flink_statements` module **must** use `depends_on = [module.base]` in the entry point (e.g., `demo_mode/main.tf`). Without this, Flink statements fail because the Kafka topics and schemas haven't been registered in the Flink catalog yet. The base module creates topics, schemas, the CDC connector, and the `alter_mortgage_applications` statement — all of which must complete before any Flink DDL statement can reference these tables.
+The `flink_statements` module **must** use `depends_on = [module.base]` in the entry point (e.g., `demo_mode/main.tf`). Without this, Flink statements fail because the Kafka topics and schemas haven't been registered in the Flink catalog yet. The base module creates topics, schemas, the CDC connector, and the ALTER statements — all of which must complete before any Flink DDL statement can reference these tables.
 
 Within the flink-statements module, all 8 statements are chained via `depends_on` to enforce sequential execution and preserve dependencies (e.g., `enriched_mortgage_with_payments` depends on both `enriched_mortgage_applications` and `applicant_payment_summary`).
+
+## Important: Confluent Cloud Flink Property Names
+
+Confluent Cloud Flink uses **hyphenated** property names, not dot-separated. For example:
+- `sql.state-ttl` (correct) — NOT `sql.state.ttl`
+- `sql.tables.scan.idle-timeout` (correct)
+
+Using dot-separated names causes "Unsupported configuration options" errors.
+
+## Important: Flink Table API and Temporal Joins
+
+The Flink Table API (`terraform/code/FlinkTableAPI/`) does not have native temporal join syntax. The `MortgageEnrichment.java` file uses `env.executeSql()` with SQL for the temporal join, while keeping `env.createTable()` with `ConfluentTableDescriptor` for table creation. Mixing Table API and SQL in the same program is officially supported by Confluent.
 
 ## Git Conventions
 
