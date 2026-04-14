@@ -77,7 +77,7 @@ This Flink Streaming Agent evaluates each enriched application plus payment hist
    );
    ```
 
-3. Create the output table using CTAS:
+3. Invoke `mortgage_risk_agent` by creating a CTAS that passes each enriched application through the agent and extracts the risk assessment fields from its JSON response:
 
    ```sql
    SET 'client.statement-name' = 'mortgage-risk-agent';
