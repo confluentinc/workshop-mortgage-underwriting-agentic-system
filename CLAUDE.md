@@ -193,6 +193,9 @@ aws logs tail /ecs/<prefix>-datagen-<env_id> --follow
 
 ## Rules
 
+### Cross-platform compatibility is required
+All Terraform code must work on both **Windows** and **macOS**. Any `null_resource` with `local-exec` provisioners must include platform-specific variants (PowerShell for Windows, bash for Unix) with a `count` guard based on OS detection. Never use Unix-only shell syntax (e.g. `set -e`, `command -v`, `#!/bin/bash`) without a Windows equivalent. Test or verify that any new local-exec logic works on both platforms.
+
 ### Do not modify `modules/base/` unless specifically asked
 Changes to `terraform/modules/base/` affect **all three deployment modes** (workshop, self-serve, demo). Only modify base when the change is intentionally shared across all modes. Mode-specific logic belongs in the entry point or in a dedicated module.
 

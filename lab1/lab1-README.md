@@ -62,6 +62,9 @@ We will now enrich mortgage applications with credit score data. This will creat
 
 ![Architecture](./assets/lab1-table-hld.png)
 
+> [!NOTE]
+> A new mortgage application is generated every 10 minutes by the data generator.
+
 <details>
 <summary>Option A: Java Table API (requires Java 17 and Maven)</summary>
 
@@ -95,6 +98,8 @@ Install Java 17 and Maven if not already installed:
    ```sql
    SELECT * FROM enriched_mortgage_applications
    ```
+
+   > **Note:** Results may take a minute or two to appear due to the temporal join waiting for watermarks to advance on both input streams.
 
    ![Enriched Mortgage Applications](./assets/lab1-table1.png)
 
@@ -166,6 +171,8 @@ Install Java 17 and Maven if not already installed:
    ```sql
    SELECT * FROM enriched_mortgage_applications;
    ```
+
+   > **Note:** Results may take a minute or two to appear due to the temporal join waiting for watermarks to advance on both input streams.
 
 </details>
 
