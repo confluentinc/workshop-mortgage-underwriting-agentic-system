@@ -129,8 +129,10 @@ This Flink Streaming Agent evaluates each enriched application plus payment hist
       ) AS agent_result;
    ```
 
+   ![Mortgage Risk Agent Query Visualization](./assets/mortgage-risk-agent-viz.png)
+
 > [!IMPORTANT]
-> This query should run continuously and **must not be stopped or deleted**.  
+> This query should run continuously and **must not be stopped or deleted**.
 > Add new cells **above or below** this one before proceeding.
 
 4. Verify output:
@@ -304,9 +306,11 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
    ) AS agent_result(status, response);
    ```
 
-> [!IMPORTANT]
-> This query should run continuously and **must not be stopped or deleted**.
-> Add new cells **above or below** this one before proceeding.
+   ![Mortgage Decisions Agent Query Visualization](./assets/mortgage-decisions-agent-viz.png)
+
+   > [!IMPORTANT]
+   > This query should run continuously and **must not be stopped or deleted**.
+   > Add new cells **above or below** this one before proceeding.
 
    <details>
    <summary>Troubleshooting the email delivery</summary>
