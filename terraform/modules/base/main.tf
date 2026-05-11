@@ -381,7 +381,7 @@ resource "confluent_flink_connection" "bedrock_connection" {
 
   display_name   = "llm-textgen-connection"
   type           = "BEDROCK"
-  endpoint       = "https://bedrock-runtime.${var.cloud_region}.amazonaws.com/model/${local.model_prefix}.anthropic.claude-opus-4-5-20251101-v1:0/invoke"
+  endpoint       = "https://bedrock-runtime.${var.cloud_region}.amazonaws.com/model/${local.model_prefix}.anthropic.claude-sonnet-4-5-20250929-v1:0/invoke"
   aws_access_key = var.bedrock_access_key
   aws_secret_key = var.bedrock_secret_key
 

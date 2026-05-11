@@ -63,13 +63,13 @@ Before starting, make sure you have:
 > Request model access before you begin the Terraform steps below. Approval can take a few minutes, and starting early avoids delays later.
 
 <details>
-<summary>Enable Claude Opus 4.5 in Amazon Bedrock</summary>
+<summary>Enable Claude Sonnet 4.5 in Amazon Bedrock</summary>
 
-To enable Claude Opus 4.5 in your AWS account via Amazon Bedrock:
+To enable Claude Sonnet 4.5 in your AWS account via Amazon Bedrock:
 
 1. Open the Amazon Bedrock Console (`https://console.aws.amazon.com/bedrock/home?/overview`) and ensure you are in the same region you will deploy.
 2. In the left sidebar, under Bedrock configuration, click Model access.
-3. Locate Claude Opus 4.5 in the list of available models.
+3. Locate Claude Sonnet 4.5 in the list of available models.
 4. Click Available to request, then select Request model access.
 5. In the request wizard, click Next and follow the prompts to complete the request.
 
