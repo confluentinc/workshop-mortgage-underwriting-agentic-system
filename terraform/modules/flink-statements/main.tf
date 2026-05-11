@@ -370,10 +370,10 @@ resource "confluent_flink_statement" "mortgage_validated_apps" {
       m.credit_score,
       m.credit_utilization,
       m.debt_to_income_ratio,
-      CAST(JSON_VALUE(agent_result.response, '$.fraud_risk_score') AS DOUBLE) AS fraud_risk_score,
-      JSON_VALUE(agent_result.response, '$.loan_stack_risk') AS loan_stack_risk,
-      JSON_VALUE(agent_result.response, '$.risk_category') AS risk_category,
-      JSON_VALUE(agent_result.response, '$.agent_reasoning') AS agent_reasoning,
+      CAST(JSON_VALUE(REGEXP_REPLACE(agent_result.response, '```(json)?|```', ''), '$.fraud_risk_score') AS DOUBLE) AS fraud_risk_score,
+      JSON_VALUE(REGEXP_REPLACE(agent_result.response, '```(json)?|```', ''), '$.loan_stack_risk') AS loan_stack_risk,
+      JSON_VALUE(REGEXP_REPLACE(agent_result.response, '```(json)?|```', ''), '$.risk_category') AS risk_category,
+      JSON_VALUE(REGEXP_REPLACE(agent_result.response, '```(json)?|```', ''), '$.agent_reasoning') AS agent_reasoning,
       m.application_ts
     FROM `${var.environment_display_name}`.`${var.kafka_cluster_display_name}`.`enriched_mortgage_with_payments` m,
     LATERAL TABLE(
@@ -538,10 +538,10 @@ resource "confluent_flink_statement" "mortgage_decisions" {
       m.borrower_name,
       m.property_state,
       m.loan_amount,
-      JSON_VALUE(agent_result.response, '$.final_interest_rate') AS final_interest_rate,
-      JSON_VALUE(agent_result.response, '$.decision') AS decision,
-      JSON_VALUE(agent_result.response, '$.explanation') AS explanation,
-      JSON_VALUE(agent_result.response, '$.letter_body') AS letter_body,
+      JSON_VALUE(REGEXP_REPLACE(agent_result.response, '```(json)?|```', ''), '$.final_interest_rate') AS final_interest_rate,
+      JSON_VALUE(REGEXP_REPLACE(agent_result.response, '```(json)?|```', ''), '$.decision') AS decision,
+      JSON_VALUE(REGEXP_REPLACE(agent_result.response, '```(json)?|```', ''), '$.explanation') AS explanation,
+      JSON_VALUE(REGEXP_REPLACE(agent_result.response, '```(json)?|```', ''), '$.letter_body') AS letter_body,
       m.application_ts AS `timestamp`
     FROM `${var.environment_display_name}`.`${var.kafka_cluster_display_name}`.`mortgage_validated_apps` m,
     LATERAL TABLE(
