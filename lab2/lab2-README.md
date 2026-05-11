@@ -256,7 +256,7 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
          '{\n'
          '"letter_body": (string) acceptace or rejection letter\n',
          '"decision": (enum) Either "Approved" or "Rejected"\n',
-         '"final_interest_rate": (float) The suggested interest rate for the applicant if the application "decision" is Approved. If the application "decision" is "Rejected" suggest "-1" interest rate.  \n',
+         '"final_interest_rate": (string) The suggested interest rate as a string (e.g., "7.5"). For Rejected applications use "-1.0". Never use null.\n',
          '"explanation": (string) A brief narrative explaining the decision and interest rate logic\n',
          '}',
          'Provide only the JSON.\n\n',
@@ -264,7 +264,7 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
          
          '## Field Requirements\n',
          '- decision: Must be exactly "Approved" or "Rejected"\n',
-         '- final_interest_rate: Must be a STRING (e.g., "7.5" not 7.5). Use "-1.0" for rejected applications\n',
+         '- final_interest_rate: Must be a STRING (e.g., "7.5" not 7.5). Use "-1.0" for rejected applications. Never null.\n',
          '- explanation: Single string with brief reasoning\n',
          '- letter_body: Single string containing the complete letter (see template below)\n\n',
          
@@ -387,7 +387,7 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
          '{\n'
          '"letter_body": (string) acceptace or rejection letter\n',
          '"decision": (enum) Either "Approved" or "Rejected"\n',
-         '"final_interest_rate": (float) The suggested interest rate for the applicant if the application "decision" is Approved. If the application "decision" is "Rejected" suggest "-1" interest rate.  \n',
+         '"final_interest_rate": (string) The suggested interest rate as a string (e.g., "7.5"). For Rejected applications use "-1.0". Never use null.\n',
          '"explanation": (string) A brief narrative explaining the decision and interest rate logic\n',
          '}',
          'Provide only the JSON.\n\n',
@@ -395,7 +395,7 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
          
          '## Field Requirements\n',
          '- decision: Must be exactly "Approved" or "Rejected"\n',
-         '- final_interest_rate: Must be a STRING (e.g., "7.5" not 7.5). Use "-1.0" for rejected applications\n',
+         '- final_interest_rate: Must be a STRING (e.g., "7.5" not 7.5). Use "-1.0" for rejected applications. Never null.\n',
          '- explanation: Single string with brief reasoning\n',
          '- letter_body: Single string containing the complete letter (see template below)\n\n',
          
