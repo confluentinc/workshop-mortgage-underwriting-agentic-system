@@ -256,7 +256,7 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
          '{\n'
          '"letter_body": (string) acceptace or rejection letter\n',
          '"decision": (enum) Either "Approved" or "Rejected"\n',
-         '"final_interest_rate": (float) The suggested interest rate for the applicant if the application "decision" is Approved. If the application "decision" is "Rejected" suggest "-1" interest rate.  \n',
+         '"final_interest_rate": (string) The suggested interest rate as a string (e.g., "7.5"). For Rejected applications use "-1.0". Never use null.\n',
          '"explanation": (string) A brief narrative explaining the decision and interest rate logic\n',
          '}',
          'Provide only the JSON.\n\n',
@@ -264,7 +264,7 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
          
          '## Field Requirements\n',
          '- decision: Must be exactly "Approved" or "Rejected"\n',
-         '- final_interest_rate: Must be a STRING (e.g., "7.5" not 7.5). Use "-1.0" for rejected applications\n',
+         '- final_interest_rate: Must be a STRING (e.g., "7.5" not 7.5). Use "-1.0" for rejected applications. Never null.\n',
          '- explanation: Single string with brief reasoning\n',
          '- letter_body: Single string containing the complete letter (see template below)\n\n',
          
@@ -296,6 +296,8 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
          '- Subject: Mortgage Decision - Application ', m.application_id, ' - ', m.borrower_name, '\n',
          '- Body: Use the exact letter_body value from your JSON output\n\n',
          
+         'CRITICAL: After calling gmail_send_email, your FINAL response (the very last thing you output) MUST be the same raw JSON object you constructed. Do NOT respond with "Email sent" or any acknowledgment. Re-emit the complete JSON object as your final answer. The system extracts fields from your final response, so it must be the JSON.\n\n',
+
          'REMEMBER: Output ONLY the JSON object. Do NOT include email fields in the JSON. Do NOT add any text before or after the JSON.'
       ),
          m.application_id,
@@ -385,7 +387,7 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
          '{\n'
          '"letter_body": (string) acceptace or rejection letter\n',
          '"decision": (enum) Either "Approved" or "Rejected"\n',
-         '"final_interest_rate": (float) The suggested interest rate for the applicant if the application "decision" is Approved. If the application "decision" is "Rejected" suggest "-1" interest rate.  \n',
+         '"final_interest_rate": (string) The suggested interest rate as a string (e.g., "7.5"). For Rejected applications use "-1.0". Never use null.\n',
          '"explanation": (string) A brief narrative explaining the decision and interest rate logic\n',
          '}',
          'Provide only the JSON.\n\n',
@@ -393,7 +395,7 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
          
          '## Field Requirements\n',
          '- decision: Must be exactly "Approved" or "Rejected"\n',
-         '- final_interest_rate: Must be a STRING (e.g., "7.5" not 7.5). Use "-1.0" for rejected applications\n',
+         '- final_interest_rate: Must be a STRING (e.g., "7.5" not 7.5). Use "-1.0" for rejected applications. Never null.\n',
          '- explanation: Single string with brief reasoning\n',
          '- letter_body: Single string containing the complete letter (see template below)\n\n',
          
@@ -425,6 +427,8 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
          '- Subject: Mortgage Decision - Application ', m.application_id, ' - ', m.borrower_name, '\n',
          '- Body: Use the exact letter_body value from your JSON output\n\n',
          
+         'CRITICAL: After calling gmail_send_email, your FINAL response (the very last thing you output) MUST be the same raw JSON object you constructed. Do NOT respond with "Email sent" or any acknowledgment. Re-emit the complete JSON object as your final answer. The system extracts fields from your final response, so it must be the JSON.\n\n',
+
          'REMEMBER: Output ONLY the JSON object. Do NOT include email fields in the JSON. Do NOT add any text before or after the JSON.'
       ),
          m.application_id,
