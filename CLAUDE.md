@@ -131,7 +131,7 @@ Pure Confluent Cloud infrastructure — no datagen, no CDC connector:
 - Topics (all 1 partition): `mortgage_applications`, `payment_history`, `incomplete_mortgage_applications` (DLQ), `PROD.public.applicant_credit_score` (pre-created with `cleanup.policy=compact`)
 - AVRO schemas with data quality rules (CEL validation: payslip URI must match `^s3://riverbank-payslip-bucket/[a-zA-Z0-9._/-]+$` → DLQ routing on failure)
 - `alter_mortgage_applications` Flink statement — adds WATERMARK on `application_ts` for temporal join support
-- Bedrock connection + LLM model (`llm_textgen_model` — Claude 3.7 Sonnet, 50K max tokens)
+- Bedrock connection + LLM model (`llm_textgen_model` — Claude Opus 4.5, 50K max tokens)
 - MCP connection (configurable endpoint + transport type) for external tool access
 - Webapp Docker container (`mortgage-webapp`) — built locally from `webapp/Dockerfile`, port 5001→5000
 - Outputs credentials for datagen and CDC connector modules
