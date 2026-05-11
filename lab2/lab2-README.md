@@ -296,6 +296,8 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
          '- Subject: Mortgage Decision - Application ', m.application_id, ' - ', m.borrower_name, '\n',
          '- Body: Use the exact letter_body value from your JSON output\n\n',
          
+         'CRITICAL: After calling gmail_send_email, your FINAL response (the very last thing you output) MUST be the same raw JSON object you constructed. Do NOT respond with "Email sent" or any acknowledgment. Re-emit the complete JSON object as your final answer. The system extracts fields from your final response, so it must be the JSON.\n\n',
+
          'REMEMBER: Output ONLY the JSON object. Do NOT include email fields in the JSON. Do NOT add any text before or after the JSON.'
       ),
          m.application_id,
@@ -425,6 +427,8 @@ Built on **Confluent Cloud Streaming Agents**, AI agents run natively in Flink S
          '- Subject: Mortgage Decision - Application ', m.application_id, ' - ', m.borrower_name, '\n',
          '- Body: Use the exact letter_body value from your JSON output\n\n',
          
+         'CRITICAL: After calling gmail_send_email, your FINAL response (the very last thing you output) MUST be the same raw JSON object you constructed. Do NOT respond with "Email sent" or any acknowledgment. Re-emit the complete JSON object as your final answer. The system extracts fields from your final response, so it must be the JSON.\n\n',
+
          'REMEMBER: Output ONLY the JSON object. Do NOT include email fields in the JSON. Do NOT add any text before or after the JSON.'
       ),
          m.application_id,
