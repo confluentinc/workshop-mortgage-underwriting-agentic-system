@@ -1,0 +1,104 @@
+direction: right
+
+enriched_mortgage_applications: enriched_mortgage_applications {
+  shape: sql_table
+  application_id: STRING
+  customer_email: STRING
+  borrower_name: STRING
+  applicant_id: STRING
+  income: DOUBLE
+  payslips: STRING
+  loan_amount: DOUBLE
+  property_address: STRING
+  property_state: STRING
+  property_value: DOUBLE
+  employment_status: STRING
+  credit_score: DOUBLE
+  credit_utilization: DOUBLE
+  open_credit_accounts: DOUBLE
+  recent_defaults: DOUBLE
+  debt_to_income_ratio: DOUBLE
+  application_ts: TIMESTAMP_LTZ(3)
+}
+
+applicant_payment_summary: applicant_payment_summary {
+  shape: sql_table
+  applicant_id: STRING NOT NULL
+  updated_at: TIMESTAMP_LTZ(3) NOT NULL
+  payment_history: ARRAY<ROW>
+}
+
+temporal_join: TEMPORAL JOIN {
+  shape: diamond
+  style: {
+    fill: "#FFB74D"
+    font-size: 13
+  }
+}
+
+filter: WHERE {
+  shape: hexagon
+  style: {
+    fill: "#EF9A9A"
+    font-size: 14
+  }
+  |md
+    property_value < 500,000
+  |
+}
+
+enriched_mortgage_with_payments: enriched_mortgage_with_payments {
+  shape: sql_table
+  style: {
+    fill: "#C8E6C9"
+  }
+  application_id: STRING
+  customer_email: STRING
+  borrower_name: STRING
+  applicant_id: STRING
+  income: DOUBLE
+  payslips: STRING
+  loan_amount: DOUBLE
+  property_address: STRING
+  property_state: STRING
+  property_value: DOUBLE
+  employment_status: STRING
+  credit_score: DOUBLE
+  credit_utilization: DOUBLE
+  open_credit_accounts: DOUBLE
+  recent_defaults: DOUBLE
+  debt_to_income_ratio: DOUBLE
+  application_ts: TIMESTAMP_LTZ(3)
+  payment_history: ARRAY<ROW>
+}
+
+enriched_mortgage_applications -> temporal_join: m {
+  style.stroke: "#1976D2"
+  style.stroke-width: 2
+}
+applicant_payment_summary -> temporal_join: "p (FOR SYSTEM_TIME AS OF m.application_ts)" {
+  style.stroke: "#1976D2"
+  style.stroke-width: 2
+  style.font-size: 11
+}
+
+temporal_join -> filter: "LEFT JOIN ON m.applicant_id = p.applicant_id" {
+  style.stroke: "#E65100"
+  style.stroke-width: 2
+  style.font-size: 11
+}
+
+filter -> enriched_mortgage_with_payments: "CREATE TABLE (changelog.mode = append)" {
+  style.stroke: "#2E7D32"
+  style.stroke-width: 2
+  style.font-size: 11
+}
+
+title: enriched-mortgage-payments-materializer {
+  shape: text
+  near: top-center
+  style: {
+    font-size: 20
+    bold: true
+  }
+}

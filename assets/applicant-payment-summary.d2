@@ -1,0 +1,72 @@
+direction: right
+
+payment_history: payment_history {
+  shape: sql_table
+  applicant_id: STRING
+  transaction_id: STRING
+  method: STRING
+  amount: DOUBLE
+  status: STRING
+  failure_reason: STRING
+  payment_date: STRING
+  "$rowtime": TIMESTAMP
+}
+
+group_by: GROUP BY applicant_id {
+  shape: diamond
+  style: {
+    fill: "#FFB74D"
+    font-size: 14
+  }
+}
+
+transform: Aggregations {
+  shape: rectangle
+  style: {
+    fill: "#CE93D8"
+    font-size: 13
+    border-radius: 8
+  }
+  |md
+    - MAX($rowtime) -> updated_at
+    - ARRAY_AGG(ROW(transaction_id, method,
+      amount, status, failure_reason,
+      payment_date)) -> payment_history
+  |
+}
+
+applicant_payment_summary: applicant_payment_summary {
+  shape: sql_table
+  style: {
+    fill: "#C8E6C9"
+  }
+  applicant_id: STRING NOT NULL
+  updated_at: TIMESTAMP_LTZ(3) NOT NULL {constraint: watermark}
+  payment_history: ARRAY<ROW>
+}
+
+payment_history -> group_by {
+  style.stroke: "#1976D2"
+  style.stroke-width: 2
+}
+
+group_by -> transform: "applicant_id" {
+  style.stroke: "#E65100"
+  style.stroke-width: 2
+  style.font-size: 12
+}
+
+transform -> applicant_payment_summary: "CREATE TABLE AS SELECT" {
+  style.stroke: "#2E7D32"
+  style.stroke-width: 2
+  style.font-size: 12
+}
+
+title: applicant-payment-summary-materializer {
+  shape: text
+  near: top-center
+  style: {
+    font-size: 20
+    bold: true
+  }
+}

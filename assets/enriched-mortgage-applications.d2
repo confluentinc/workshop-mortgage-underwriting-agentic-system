@@ -1,0 +1,104 @@
+direction: right
+
+mortgage_applications: mortgage_applications {
+  shape: sql_table
+  application_id: STRING {constraint: primary_key}
+  customer_email: STRING
+  customer_name: STRING
+  applicant_id: STRING
+  income: STRING
+  payslips: STRING
+  loan_amount: STRING
+  property_address: STRING
+  property_state: STRING
+  property_value: STRING
+  employment_status: STRING
+  application_ts: TIMESTAMP_LTZ(3)
+}
+
+applicant_credit_score: PROD.public.applicant_credit_score {
+  shape: sql_table
+  "after.applicant_id": STRING {constraint: primary_key}
+  "after.credit_score": DOUBLE
+  "after.credit_utilization": DOUBLE
+  "after.open_credit_accounts": DOUBLE
+  "after.public_records": DOUBLE
+}
+
+join_op: JOIN {
+  shape: diamond
+  style: {
+    fill: "#FFB74D"
+    font-size: 14
+  }
+}
+
+transform: Transformations {
+  shape: rectangle
+  style: {
+    fill: "#CE93D8"
+    font-size: 13
+    border-radius: 8
+  }
+  |md
+    - CAST income, loan_amount, property_value to DOUBLE
+    - Rename customer_name -> borrower_name
+    - Rename public_records -> recent_defaults
+    - Calculate debt_to_income_ratio:
+      ROUND((loan_amount / income) * 100, 2)
+  |
+}
+
+enriched_mortgage_applications: enriched_mortgage_applications {
+  shape: sql_table
+  style: {
+    fill: "#C8E6C9"
+  }
+  application_id: STRING
+  customer_email: STRING
+  borrower_name: STRING
+  applicant_id: STRING
+  income: DOUBLE
+  payslips: STRING
+  loan_amount: DOUBLE
+  property_address: STRING
+  property_state: STRING
+  property_value: DOUBLE
+  employment_status: STRING
+  credit_score: DOUBLE
+  credit_utilization: DOUBLE
+  open_credit_accounts: DOUBLE
+  recent_defaults: DOUBLE
+  debt_to_income_ratio: DOUBLE
+  application_ts: TIMESTAMP_LTZ(3) {constraint: watermark}
+}
+
+mortgage_applications -> join_op: m {
+  style.stroke: "#1976D2"
+  style.stroke-width: 2
+}
+applicant_credit_score -> join_op: c {
+  style.stroke: "#1976D2"
+  style.stroke-width: 2
+}
+
+join_op -> transform: "m.applicant_id = c.after.applicant_id" {
+  style.stroke: "#E65100"
+  style.stroke-width: 2
+  style.font-size: 12
+}
+
+transform -> enriched_mortgage_applications: "CREATE TABLE AS SELECT" {
+  style.stroke: "#2E7D32"
+  style.stroke-width: 2
+  style.font-size: 12
+}
+
+title: enriched-mortgage-applications-materializer {
+  shape: text
+  near: top-center
+  style: {
+    font-size: 20
+    bold: true
+  }
+}
