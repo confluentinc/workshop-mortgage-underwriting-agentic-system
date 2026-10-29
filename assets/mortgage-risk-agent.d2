@@ -1,0 +1,149 @@
+direction: right
+
+enriched_mortgage_with_payments: enriched_mortgage_with_payments {
+  shape: sql_table
+  application_id: STRING
+  applicant_id: STRING
+  customer_email: STRING
+  borrower_name: STRING
+  income: DOUBLE
+  payslips: STRING
+  loan_amount: DOUBLE
+  property_address: STRING
+  property_state: STRING
+  property_value: DOUBLE
+  employment_status: STRING
+  credit_score: DOUBLE
+  credit_utilization: DOUBLE
+  debt_to_income_ratio: DOUBLE
+  recent_defaults: DOUBLE
+  payment_history: ARRAY<ROW>
+  application_ts: TIMESTAMP_LTZ(3)
+}
+
+prompt_builder: Prompt Construction {
+  shape: rectangle
+  style: {
+    fill: "#BBDEFB"
+    font-size: 13
+    border-radius: 8
+  }
+  |md
+    **ROLE**: Credit and Fraud Risk Analyst
+    at River Banking
+
+    **INPUT DATA** (per row):
+    - Application ID, Applicant ID
+    - Borrower Name, Annual Income
+    - Loan Amount, Credit Score
+    - Credit Utilization, Debt-to-Income
+    - Recent Defaults, Payment History
+
+    "Return JSON only using the
+    required output format."
+  |
+}
+
+ai_agent: AI_RUN_AGENT {
+  shape: oval
+  style: {
+    fill: "#FFE082"
+    font-size: 14
+    bold: true
+  }
+}
+
+agent_label: "mortgage_risk_agent" {
+  shape: text
+  style: {
+    font-size: 12
+    italic: true
+  }
+}
+
+lateral: LATERAL TABLE {
+  shape: diamond
+  style: {
+    fill: "#FFB74D"
+    font-size: 13
+  }
+}
+
+json_extract: JSON Extraction {
+  shape: rectangle
+  style: {
+    fill: "#CE93D8"
+    font-size: 13
+    border-radius: 8
+  }
+  |md
+    - JSON_VALUE(response, '$.fraud_risk_score') -> DOUBLE
+    - JSON_VALUE(response, '$.loan_stack_risk') -> STRING
+    - JSON_VALUE(response, '$.risk_category') -> STRING
+    - JSON_VALUE(response, '$.agent_reasoning') -> STRING
+  |
+}
+
+mortgage_validated_apps: mortgage_validated_apps {
+  shape: sql_table
+  style: {
+    fill: "#C8E6C9"
+  }
+  application_id: STRING
+  applicant_id: STRING
+  customer_email: STRING
+  borrower_name: STRING
+  income: DOUBLE
+  payslips: STRING
+  loan_amount: DOUBLE
+  property_address: STRING
+  property_state: STRING
+  property_value: DOUBLE
+  employment_status: STRING
+  credit_score: DOUBLE
+  credit_utilization: DOUBLE
+  debt_to_income_ratio: DOUBLE
+  fraud_risk_score: DOUBLE
+  loan_stack_risk: STRING
+  risk_category: STRING
+  agent_reasoning: STRING
+  application_ts: TIMESTAMP_LTZ(3)
+}
+
+enriched_mortgage_with_payments -> prompt_builder: "build prompt per row" {
+  style.stroke: "#1976D2"
+  style.stroke-width: 2
+  style.font-size: 11
+}
+
+prompt_builder -> ai_agent: "CONCAT(...)" {
+  style.stroke: "#F57F17"
+  style.stroke-width: 2
+  style.font-size: 11
+}
+
+ai_agent -> lateral: "agent_result.response (JSON)" {
+  style.stroke: "#F57F17"
+  style.stroke-width: 2
+  style.font-size: 11
+}
+
+lateral -> json_extract {
+  style.stroke: "#E65100"
+  style.stroke-width: 2
+}
+
+json_extract -> mortgage_validated_apps: "CREATE TABLE AS SELECT" {
+  style.stroke: "#2E7D32"
+  style.stroke-width: 2
+  style.font-size: 11
+}
+
+title: mortgage-risk-agent {
+  shape: text
+  near: top-center
+  style: {
+    font-size: 20
+    bold: true
+  }
+}
