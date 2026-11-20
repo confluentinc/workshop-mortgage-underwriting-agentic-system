@@ -1,0 +1,156 @@
+direction: right
+
+mortgage_validated_apps: mortgage_validated_apps {
+  shape: sql_table
+  application_id: STRING
+  applicant_id: STRING
+  customer_email: STRING
+  borrower_name: STRING
+  income: DOUBLE
+  payslips: STRING
+  loan_amount: DOUBLE
+  property_address: STRING
+  property_state: STRING
+  property_value: DOUBLE
+  employment_status: STRING
+  credit_score: DOUBLE
+  credit_utilization: DOUBLE
+  debt_to_income_ratio: DOUBLE
+  fraud_risk_score: DOUBLE
+  loan_stack_risk: STRING
+  risk_category: STRING
+  agent_reasoning: STRING
+  application_ts: TIMESTAMP_LTZ(3)
+}
+
+prompt_builder: Prompt Construction {
+  shape: rectangle
+  style: {
+    fill: "#BBDEFB"
+    font-size: 13
+    border-radius: 8
+  }
+  |md
+    **ROLE**: Mortgage Underwriting and
+    Communications Agent at River Banking
+
+    **INPUT DATA** (per row):
+    - Application & Applicant IDs
+    - Borrower Name, Email
+    - Property Address, State, Value
+    - Loan Amount, Income, Employment
+    - Credit Score, Utilization, DTI
+    - Fraud Risk Score, Loan Stack Risk
+    - Risk Category, Agent Reasoning
+
+    **DECISION CRITERIA**:
+    - Credit: >750 Low, 500-750 Med, <500 High
+    - Fraud Score >70: reject or scrutinize
+    - Base rate: 6.5% adjusted by risk
+  |
+}
+
+ai_agent: AI_RUN_AGENT {
+  shape: oval
+  style: {
+    fill: "#FFE082"
+    font-size: 14
+    bold: true
+  }
+}
+
+tool_email: send_email (gmail) {
+  shape: rectangle
+  style: {
+    fill: "#F8BBD0"
+    font-size: 13
+    border-radius: 8
+    3d: true
+  }
+}
+
+lateral: LATERAL TABLE {
+  shape: diamond
+  style: {
+    fill: "#FFB74D"
+    font-size: 13
+  }
+}
+
+json_extract: JSON Extraction {
+  shape: rectangle
+  style: {
+    fill: "#CE93D8"
+    font-size: 13
+    border-radius: 8
+  }
+  |md
+    - JSON_VALUE(response, '$.final_interest_rate')
+    - JSON_VALUE(response, '$.decision')
+    - JSON_VALUE(response, '$.explanation')
+    - JSON_VALUE(response, '$.letter_body')
+  |
+}
+
+mortgage_decisions: mortgage_decisions {
+  shape: sql_table
+  style: {
+    fill: "#C8E6C9"
+  }
+  application_id: STRING
+  applicant_id: STRING
+  customer_email: STRING
+  borrower_name: STRING
+  property_state: STRING
+  loan_amount: DOUBLE
+  final_interest_rate: STRING
+  decision: STRING
+  explanation: STRING
+  letter_body: STRING
+  timestamp: TIMESTAMP_LTZ(3)
+}
+
+mortgage_validated_apps -> prompt_builder: "build prompt per row" {
+  style.stroke: "#1976D2"
+  style.stroke-width: 2
+  style.font-size: 11
+}
+
+prompt_builder -> ai_agent: "CONCAT(...)" {
+  style.stroke: "#F57F17"
+  style.stroke-width: 2
+  style.font-size: 11
+}
+
+ai_agent -> tool_email: "gmail_send_email" {
+  style.stroke: "#C2185B"
+  style.stroke-width: 2
+  style.font-size: 11
+  style.stroke-dash: 5
+}
+
+ai_agent -> lateral: "agent_result(status, response)" {
+  style.stroke: "#F57F17"
+  style.stroke-width: 2
+  style.font-size: 11
+}
+
+lateral -> json_extract {
+  style.stroke: "#E65100"
+  style.stroke-width: 2
+}
+
+json_extract -> mortgage_decisions: "CREATE TABLE AS SELECT" {
+  style.stroke: "#2E7D32"
+  style.stroke-width: 2
+  style.font-size: 11
+}
+
+title: mortgage-decisions-agent {
+  shape: text
+  near: top-center
+  style: {
+    font-size: 20
+    bold: true
+  }
+}
